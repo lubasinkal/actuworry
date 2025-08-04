@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,10 +9,114 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 text-gray-900">
-    <div class="container mx-auto p-4">
-        <h1 class="text-3xl font-bold">Actuworry</h1>
-        <p class="mt-2">An in-house actuarial solution.</p>
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <a href="#" class="text-2xl font-bold text-indigo-600">Actuworry</a>
+                <div class="hidden md:flex space-x-4">
+                    <a href="#pricing" class="text-gray-600 hover:text-indigo-600">Pricing</a>
+                    <a href="#reserving" class="text-gray-600 hover:text-indigo-600">Reserving</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="pricing" class="container mx-auto p-4">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-2xl font-bold mb-4">Motor Insurance Pricing</h2>
+            <form id="pricing-form">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
+                        <input type="number" id="age" name="age" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 30">
+                    </div>
+                    <div>
+                        <label for="vehicle_value" class="block text-sm font-medium text-gray-700">Vehicle Value</label>
+                        <input type="number" id="vehicle_value" name="vehicle_value" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 150000">
+                    </div>
+                    <div>
+                        <label for="region" class="block text-sm font-medium text-gray-700">Region</label>
+                        <select id="region" name="region" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option>Gaborone</option>
+                            <option>Francistown</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="vehicle_usage" class="block text-sm font-medium text-gray-700">Vehicle Usage</label>
+                        <select id="vehicle_usage" name="vehicle_usage" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <option>Personal</option>
+                            <option>Commercial</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="no_claims_bonus" class="block text-sm font-medium text-gray-700">No Claims Bonus (years)</label>
+                        <input type="number" id="no_claims_bonus" name="no_claims_bonus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 3">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Calculate Premium</button>
+                </div>
+            </form>
+            <div id="premium-result" class="mt-8 hidden">
+                <h3 class="text-xl font-bold">Predicted Premium</h3>
+                <p class="mt-2 text-2xl font-bold text-indigo-600">P <span id="premium-value"></span></p>
+            </div>
+        </div>
     </div>
-    <script src="script.js"></script>
+
+    <div id="reserving" class="container mx-auto p-4 hidden">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-4">Chain Ladder Reserving</h2>
+                <form id="chain-ladder-form">
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label for="cl-claims-data" class="block text-sm font-medium text-gray-700">Claims Data (CSV format)</label>
+                            <textarea id="cl-claims-data" name="claims_data" rows="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g.,\n100,150,200\n120,180\n150"></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Calculate Reserves</button>
+                    </div>
+                </form>
+                <div id="chain-ladder-result" class="mt-8 hidden">
+                    <h3 class="text-xl font-bold">Calculated Reserves</h3>
+                    <p class="mt-2 text-2xl font-bold text-indigo-600">P <span id="cl-reserves-value"></span></p>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-bold mb-4">Bornhuetter-Ferguson Reserving</h2>
+                <form id="bf-form">
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label for="bf-claims-data" class="block text-sm font-medium text-gray-700">Claims Data (CSV format)</label>
+                            <textarea id="bf-claims-data" name="claims_data" rows="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g.,\n100,150,200\n120,180\n150"></textarea>
+                        </div>
+                        <div>
+                            <label for="expected_loss_ratio" class="block text-sm font-medium text-gray-700">Expected Loss Ratio</label>
+                            <input type="number" step="0.01" id="expected_loss_ratio" name="expected_loss_ratio" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 0.75">
+                        </div>
+                        <div>
+                            <label for="premium" class="block text-sm font-medium text-gray-700">Premium (CSV format)</label>
+                            <input type="text" id="premium" name="premium" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 1000,1200,1500">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Calculate Reserves</button>
+                    </div>
+                </form>
+                <div id="bf-result" class="mt-8 hidden">
+                    <h3 class="text-xl font-bold">Calculated Reserves</h3>
+                    <p class="mt-2 text-2xl font-bold text-indigo-600">P <span id="bf-reserves-value"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/pricing.js"></script>
+    <script src="js/reserving.js"></script>
 </body>
+</html>
 </html>
