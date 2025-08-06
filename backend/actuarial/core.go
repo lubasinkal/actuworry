@@ -20,6 +20,7 @@ type PolicyHolder struct {
 	Term         int     `json:"term"`
 	SumAssured   float64 `json:"sum_assured"`
 	InterestRate float64 `json:"interest_rate"`
+	TableName    string  `json:"table_name"` // e.g., "male", "female"
 }
 
 // CalculationResult holds the output of the actuarial calculations.
