@@ -23,10 +23,23 @@ type PolicyHolder struct {
 	TableName    string  `json:"table_name"` // e.g., "male", "female"
 }
 
+// ProductType represents different life insurance products
+type ProductType string
+
+const (
+	TermLife     ProductType = "term_life"
+	WholeLife    ProductType = "whole_life"
+	Endowment    ProductType = "endowment"
+	PureEndowment ProductType = "pure_endowment"
+)
+
 // CalculationResult holds the output of the actuarial calculations.
 type CalculationResult struct {
 	NetPremium      float64   `json:"net_premium"`
+	GrossPremium    float64   `json:"gross_premium"`
 	ReserveSchedule []float64 `json:"reserve_schedule"`
+	Product         string    `json:"product_type"`
+	Expenses        map[string]float64 `json:"expenses,omitempty"`
 }
 
 // LoadMortalityTable reads a mortality table from a CSV file into a MortalityTable slice.
@@ -111,6 +124,77 @@ func NetPremium(p *PolicyHolder, table MortalityTable) float64 {
 	}
 
 	return expectedFutureDeathBenefit / expectedFuturePremiums
+}
+
+// ExpenseStructure represents the expense assumptions for gross premium calculations
+type ExpenseStructure struct {
+	InitialExpenseRate   float64 // Percentage of sum assured for initial expenses
+	RenewalExpenseRate   float64 // Percentage of gross premium for renewal expenses
+	MaintenanceExpense   float64 // Fixed annual maintenance expense
+	ProfitMargin        float64 // Profit margin as percentage of net premium
+}
+
+// DefaultExpenseStructure returns typical expense assumptions for Botswana market
+func DefaultExpenseStructure() ExpenseStructure {
+	return ExpenseStructure{
+		InitialExpenseRate: 0.03,   // 3% of sum assured for initial expenses
+		RenewalExpenseRate: 0.05,   // 5% of gross premium for renewal expenses
+		MaintenanceExpense: 50.0,   // BWP 50 per year maintenance
+		ProfitMargin:      0.15,    // 15% profit margin
+	}
+}
+
+// GrossPremium calculates the gross premium including expenses and profit margin
+func GrossPremium(p *PolicyHolder, table MortalityTable, netPremium float64, expenses ExpenseStructure) float64 {
+	// Calculate expected present value of expenses
+	initialExpenses := p.SumAssured * expenses.InitialExpenseRate
+	
+	// Present value of maintenance expenses over the term
+	var pvMaintenanceExpenses float64
+	for t := 0; t < p.Term; t++ {
+		// Probability of policy being in force at time t
+		px := 1.0
+		for i := 0; i < t; i++ {
+			px *= (1 - table[p.Age+i])
+		}
+		pvMaintenanceExpenses += px * PresentValue(expenses.MaintenanceExpense, p.InterestRate, t)
+	}
+	
+	// Add profit margin to net premium
+	profitLoadedPremium := netPremium * (1 + expenses.ProfitMargin)
+	
+	// Calculate gross premium iteratively (since renewal expenses depend on gross premium)
+	grossPremium := profitLoadedPremium
+	for i := 0; i < 5; i++ { // Iterate to converge
+		// Present value of renewal expenses
+		var pvRenewalExpenses float64
+		for t := 1; t < p.Term; t++ { // Start from t=1 (no renewal expense in first year)
+			// Probability of policy being in force at time t
+			px := 1.0
+			for j := 0; j < t; j++ {
+				px *= (1 - table[p.Age+j])
+			}
+			renewalExpense := grossPremium * expenses.RenewalExpenseRate
+			pvRenewalExpenses += px * PresentValue(renewalExpense, p.InterestRate, t)
+		}
+		
+		// Present value of future gross premiums (for covering expenses)
+		var pvGrossPremiums float64
+		for t := 0; t < p.Term; t++ {
+			px := 1.0
+			for j := 0; j < t; j++ {
+				px *= (1 - table[p.Age+j])
+			}
+			pvGrossPremiums += px * PresentValue(1.0, p.InterestRate, t)
+		}
+		
+		if pvGrossPremiums > 0 {
+			totalExpenses := initialExpenses + pvMaintenanceExpenses + pvRenewalExpenses
+			grossPremium = (profitLoadedPremium + totalExpenses/pvGrossPremiums)
+		}
+	}
+	
+	return math.Round(grossPremium*100) / 100
 }
 
 // NetPremiumReserves calculates the net premium reserve at the end of each year.

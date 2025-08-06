@@ -39,12 +39,64 @@ func main() {
 		log.Printf("Successfully loaded mortality table: %s", name)
 	}
 
-	http.HandleFunc("/calculate", calculateHandler)
+	// API endpoints
+	http.HandleFunc("/calculate", corsHandler(calculateHandler))
+	http.HandleFunc("/tables", corsHandler(tablesHandler))
+	http.HandleFunc("/health", corsHandler(healthHandler))
+	
+	// Serve static files from frontend directory
+	fs := http.FileServer(http.Dir("frontend/"))
+	http.Handle("/", http.StripPrefix("/", fs))
 
 	fmt.Println("Server starting on port 8080...")
+	fmt.Println("API available at: http://localhost:8080/calculate")
+	fmt.Println("Frontend available at: http://localhost:8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
+}
+
+// corsHandler adds CORS headers to allow frontend requests
+func corsHandler(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		
+		next(w, r)
+	}
+}
+
+// tablesHandler returns available mortality tables
+func tablesHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+	
+	tables := make([]string, 0, len(mortalityTables))
+	for name := range mortalityTables {
+		tables = append(tables, name)
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"tables": tables,
+	})
+}
+
+// healthHandler provides a health check endpoint
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "healthy",
+		"tables_loaded": len(mortalityTables),
+	})
 }
 
 func calculateHandler(w http.ResponseWriter, r *http.Request) {
@@ -95,10 +147,25 @@ func calculateHandler(w http.ResponseWriter, r *http.Request) {
 
 	netPremium := actuarial.NetPremium(&p, table)
 	reserves := actuarial.NetPremiumReserves(&p, table, netPremium)
+	
+	// Calculate gross premium with default expense structure
+	expenses := actuarial.DefaultExpenseStructure()
+	grossPremium := actuarial.GrossPremium(&p, table, netPremium, expenses)
+	
+	// Create expense breakdown for response
+	expenseBreakdown := map[string]float64{
+		"initial_expense_rate": expenses.InitialExpenseRate,
+		"renewal_expense_rate": expenses.RenewalExpenseRate,
+		"maintenance_expense": expenses.MaintenanceExpense,
+		"profit_margin": expenses.ProfitMargin,
+	}
 
 	result := actuarial.CalculationResult{
 		NetPremium:      netPremium,
+		GrossPremium:    grossPremium,
 		ReserveSchedule: reserves,
+		Product:         "term_life",
+		Expenses:        expenseBreakdown,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
