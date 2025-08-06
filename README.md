@@ -48,7 +48,7 @@ Build a **transparent and customizable actuarial engine** that:
 
 1. **Clone and navigate to the project:**
    ```bash
-   git clone <your-repo>
+   git clone https://github.com/lubasinkal/actuworry
    cd actuworry
    ```
 
