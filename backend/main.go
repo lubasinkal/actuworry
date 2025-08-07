@@ -61,6 +61,94 @@ func healthCheckHandler(responseWriter http.ResponseWriter, request *http.Reques
 	})
 }
 
+type BatchCalculationRequest struct {
+	Policies []actuarial.Policy `json:"policies"`
+}
+
+type BatchCalculationResponse struct {
+	Results []actuarial.PremiumCalculation `json:"results"`
+	Summary map[string]interface{}         `json:"summary"`
+}
+
+func calculateBatchHandler(responseWriter http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodPost {
+		sendErrorResponse(responseWriter, "Invalid request method", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var batchRequest BatchCalculationRequest
+	if decodeError := json.NewDecoder(request.Body).Decode(&batchRequest); decodeError != nil {
+		sendErrorResponse(responseWriter, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if len(batchRequest.Policies) == 0 {
+		sendErrorResponse(responseWriter, "No policies provided for batch calculation", http.StatusBadRequest)
+		return
+	}
+
+	if len(batchRequest.Policies) > 100 {
+		sendErrorResponse(responseWriter, "Too many policies (max 100 per batch)", http.StatusBadRequest)
+		return
+	}
+
+	var results []actuarial.PremiumCalculation
+	totalNetPremium := 0.0
+	totalGrossPremium := 0.0
+	productTypeCounts := make(map[string]int)
+
+	for i, policy := range batchRequest.Policies {
+		// Validate each policy
+		selectedTableName := strings.ToLower(policy.Gender)
+		if selectedTableName == "" {
+			selectedTableName = "male"
+		}
+
+		mortalityTable, tableExists := loadedMortalityTables[selectedTableName]
+		if !tableExists {
+			sendErrorResponse(responseWriter, fmt.Sprintf("Invalid table_name '%s' for policy %d", policy.Gender, i+1), http.StatusBadRequest)
+			return
+		}
+
+		if policy.Age < 0 || policy.Term <= 0 || policy.CoverageAmount <= 0 || policy.InterestRate < 0 {
+			sendErrorResponse(responseWriter, fmt.Sprintf("Invalid parameters for policy %d", i+1), http.StatusBadRequest)
+			return
+		}
+
+		if policy.Age+policy.Term >= len(mortalityTable) {
+			sendErrorResponse(responseWriter, fmt.Sprintf("Age + term exceeds mortality table length for policy %d", i+1), http.StatusBadRequest)
+			return
+		}
+
+		calculationResult := actuarial.CalculateFullPremium(&policy, mortalityTable)
+		results = append(results, calculationResult)
+
+		totalNetPremium += calculationResult.NetPremium
+		totalGrossPremium += calculationResult.GrossPremium
+		productTypeCounts[calculationResult.ProductType]++
+	}
+
+	summary := map[string]interface{}{
+		"total_policies":        len(results),
+		"total_net_premium":     totalNetPremium,
+		"total_gross_premium":   totalGrossPremium,
+		"average_net_premium":   totalNetPremium / float64(len(results)),
+		"average_gross_premium": totalGrossPremium / float64(len(results)),
+		"product_type_counts":   productTypeCounts,
+	}
+
+	response := BatchCalculationResponse{
+		Results: results,
+		Summary: summary,
+	}
+
+	responseWriter.Header().Set("Content-Type", "application/json")
+	if encodeError := json.NewEncoder(responseWriter).Encode(response); encodeError != nil {
+		log.Printf("Failed to encode batch response: %v", encodeError)
+		sendErrorResponse(responseWriter, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
 func calculatePremiumHandler(responseWriter http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodPost {
 		sendErrorResponse(responseWriter, "Invalid request method", http.StatusMethodNotAllowed)
@@ -129,6 +217,7 @@ func main() {
 	}
 
 	http.HandleFunc("/calculate", allowCrossOrigin(calculatePremiumHandler))
+	http.HandleFunc("/calculate/batch", allowCrossOrigin(calculateBatchHandler))
 	http.HandleFunc("/tables", allowCrossOrigin(getAvailableTablesHandler))
 	http.HandleFunc("/health", allowCrossOrigin(healthCheckHandler))
 

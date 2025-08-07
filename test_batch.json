@@ -1,0 +1,28 @@
+{
+  "policies": [
+    {
+      "age": 35,
+      "term": 10,
+      "sum_assured": 100000,
+      "interest_rate": 0.05,
+      "table_name": "male",
+      "product_type": "term_life"
+    },
+    {
+      "age": 30,
+      "term": 20,
+      "sum_assured": 150000,
+      "interest_rate": 0.05,
+      "table_name": "female",
+      "product_type": "whole_life"
+    },
+    {
+      "age": 40,
+      "term": 15,
+      "sum_assured": 200000,
+      "interest_rate": 0.04,
+      "table_name": "male",
+      "product_type": "term_life"
+    }
+  ]
+}

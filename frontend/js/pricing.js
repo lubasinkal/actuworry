@@ -46,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
             term: parseInt(formData.get('term')),
             sum_assured: parseFloat(formData.get('sum_assured')),
             interest_rate: parseFloat(formData.get('interest_rate')) / 100, // Convert percentage to decimal
-            table_name: formData.get('table_name')
+            table_name: formData.get('table_name'),
+            product_type: formData.get('product_type')
         };
 
         try {
@@ -77,11 +78,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 profitMarginSpan.textContent = (result.expenses.profit_margin * 100).toFixed(1);
             }
             
-            // Populate reserve schedule table
+            // Populate reserve schedule table and create chart
             const reserveTableBody = document.getElementById('reserve-table-body');
             reserveTableBody.innerHTML = '';
             
             if (result.reserve_schedule) {
+                // Create table
                 result.reserve_schedule.forEach((reserve, index) => {
                     const row = reserveTableBody.insertRow();
                     const yearCell = row.insertCell(0);
@@ -96,6 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         row.className = 'bg-white';
                     }
                 });
+                
+                // Create chart
+                createReserveChart(result.reserve_schedule, result.product_type);
             }
             
             premiumResult.classList.remove('hidden');
@@ -112,3 +117,70 @@ document.addEventListener('DOMContentLoaded', () => {
         pricingSubmitButton.textContent = 'Calculate Premiums';
     });
 });
+
+// Chart creation function
+let reserveChart = null;
+
+function createReserveChart(reserveSchedule, productType) {
+    const ctx = document.getElementById('reserveChart').getContext('2d');
+    
+    // Destroy existing chart if it exists
+    if (reserveChart) {
+        reserveChart.destroy();
+    }
+    
+    const labels = reserveSchedule.map((_, index) => index);
+    const data = reserveSchedule.map(reserve => Math.max(0, reserve)); // Ensure non-negative for better visualization
+    
+    const chartTitle = productType === 'whole_life' ? 'Whole Life Reserve Schedule' : 'Term Life Reserve Schedule';
+    const chartColor = productType === 'whole_life' ? 'rgba(99, 102, 241, 0.8)' : 'rgba(59, 130, 246, 0.8)';
+    const borderColor = productType === 'whole_life' ? 'rgba(99, 102, 241, 1)' : 'rgba(59, 130, 246, 1)';
+    
+    reserveChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Reserve (BWP)',
+                data: data,
+                backgroundColor: chartColor,
+                borderColor: borderColor,
+                borderWidth: 2,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: chartTitle,
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Policy Year'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Reserve Amount (BWP)'
+                    },
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}

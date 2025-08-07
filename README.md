@@ -23,15 +23,21 @@ Build a **transparent and customizable actuarial engine** that:
 
 ### Backend (Go)
 - 🧮 **Net premium calculation** using equivalence principle
-- 💸 **Gross premium calculation** with configurable expenses
+- 💸 **Gross premium calculation** with configurable expenses  
 - 📊 **Net premium reserves** calculation over policy term
+- 🏠 **Whole life insurance** calculations with lifetime coverage
 - 📋 **Mortality table loading** from CSV files (male/female tables)
 - 🌐 **RESTful API** with proper error handling and validation
+- 🚀 **Batch calculation API** for processing multiple policies
+- 📈 **Portfolio analysis** with summary statistics
 - 🧪 **Test suite** ensuring actuarial accuracy
 
 ### Frontend (HTML/JavaScript)
-- 📝 **Life insurance pricing form** with validation
-- 📊 **Premium results display** (net vs gross)
+- 📝 **Life insurance pricing form** with product type selection
+- 🏠 **Whole life insurance** support with premium paying period
+- 📊 **Interactive charts** showing reserve schedules
+- 💰 **Premium results display** (net vs gross)
+- 📈 **Visual reserve projections** with Chart.js integration
 - 💰 **Expense assumption breakdown**
 - 📋 **Reserve schedule table** showing year-by-year values
 - 📱 **Responsive design** using Tailwind CSS
@@ -109,10 +115,15 @@ Build a **transparent and customizable actuarial engine** that:
 - **Mortality Tables:** Standard life table format with qx probabilities
 
 ### API Endpoints
-- `POST /calculate` - Calculate premiums and reserves
+- `POST /calculate` - Calculate premiums and reserves (single policy)
+- `POST /calculate/batch` - Calculate multiple policies with summary
 - `GET /tables` - List available mortality tables
 - `GET /health` - Health check endpoint
 - `GET /` - Serve frontend application
+
+### New Product Types
+- **Term Life Insurance** - Coverage for specified term only
+- **Whole Life Insurance** - Lifetime coverage with flexible premium paying periods
 
 ---
 
@@ -164,7 +175,10 @@ func DefaultExpenseStructure() ExpenseStructure {
 ## 🚧 Future Enhancements
 
 ### Short Term
-- [ ] **Product Types:** Whole life, endowments, annuities
+- [x] **Product Types:** Whole life insurance ✅
+- [x] **Batch Processing:** Multiple policy calculations ✅
+- [x] **Interactive Charts:** Reserve visualization ✅
+- [ ] **Product Types:** Endowments, annuities
 - [ ] **Underwriting:** Risk factors, medical loadings
 - [ ] **Currency:** Multi-currency support
 - [ ] **Export:** PDF quotes, Excel reserve schedules

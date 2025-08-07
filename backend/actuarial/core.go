@@ -14,11 +14,12 @@ import (
 type MortalityTable []float64
 
 type Policy struct {
-	Age          int     `json:"age"`
-	Term         int     `json:"term"`
-	CoverageAmount   float64 `json:"sum_assured"`
-	InterestRate float64 `json:"interest_rate"`
-	Gender    string  `json:"table_name"`
+	Age            int     `json:"age"`
+	Term           int     `json:"term"`
+	CoverageAmount float64 `json:"sum_assured"`
+	InterestRate   float64 `json:"interest_rate"`
+	Gender         string  `json:"table_name"`
+	ProductType    string  `json:"product_type"` // "term_life" or "whole_life"
 }
 
 type PremiumCalculation struct {
@@ -89,6 +90,13 @@ func CalculatePresentValue(futureAmount float64, interestRate float64, numberOfY
 }
 
 func CalculateNetPremium(policy *Policy, mortalityTable MortalityTable) float64 {
+	if policy.ProductType == "whole_life" {
+		return CalculateWholeLifeNetPremium(policy, mortalityTable)
+	}
+	return CalculateTermLifeNetPremium(policy, mortalityTable)
+}
+
+func CalculateTermLifeNetPremium(policy *Policy, mortalityTable MortalityTable) float64 {
 	totalExpectedDeathBenefit := 0.0
 	totalExpectedPremiumPayments := 0.0
 
@@ -109,6 +117,42 @@ func CalculateNetPremium(policy *Policy, mortalityTable MortalityTable) float64 
 
 		totalExpectedDeathBenefit += survivalProbability * deathProbability * deathBenefitPresentValue
 		totalExpectedPremiumPayments += survivalProbability * premiumPresentValue
+	}
+
+	if totalExpectedPremiumPayments > 0 {
+		return totalExpectedDeathBenefit / totalExpectedPremiumPayments
+	}
+	return 0
+}
+
+func CalculateWholeLifeNetPremium(policy *Policy, mortalityTable MortalityTable) float64 {
+	totalExpectedDeathBenefit := 0.0
+	totalExpectedPremiumPayments := 0.0
+
+	// For whole life, calculate until end of mortality table (lifetime coverage)
+	maxAge := len(mortalityTable) - 1
+	premiumPayingPeriod := policy.Term // Number of years to pay premiums
+
+	for year := 0; year < maxAge-policy.Age; year++ {
+		currentAge := policy.Age + year
+		if currentAge >= len(mortalityTable) {
+			break
+		}
+
+		survivalProbability := 1.0
+		for previousYear := 0; previousYear < year; previousYear++ {
+			survivalProbability *= (1.0 - mortalityTable[policy.Age+previousYear])
+		}
+
+		deathProbability := mortalityTable[currentAge]
+		deathBenefitPresentValue := CalculatePresentValue(policy.CoverageAmount, policy.InterestRate, year+1)
+		totalExpectedDeathBenefit += survivalProbability * deathProbability * deathBenefitPresentValue
+
+		// Premium payments only during premium paying period
+		if year < premiumPayingPeriod {
+			premiumPresentValue := CalculatePresentValue(1.0, policy.InterestRate, year)
+			totalExpectedPremiumPayments += survivalProbability * premiumPresentValue
+		}
 	}
 
 	if totalExpectedPremiumPayments > 0 {
@@ -141,6 +185,13 @@ func CalculateGrossPremium(policy *Policy, mortalityTable MortalityTable, netPre
 }
 
 func CalculateReserveSchedule(policy *Policy, mortalityTable MortalityTable, netPremium float64) []float64 {
+	if policy.ProductType == "whole_life" {
+		return CalculateWholeLifeReserveSchedule(policy, mortalityTable, netPremium)
+	}
+	return CalculateTermLifeReserveSchedule(policy, mortalityTable, netPremium)
+}
+
+func CalculateTermLifeReserveSchedule(policy *Policy, mortalityTable MortalityTable, netPremium float64) []float64 {
 	reserveSchedule := make([]float64, policy.Term+1)
 
 	for currentYear := 0; currentYear <= policy.Term; currentYear++ {
@@ -179,7 +230,55 @@ func CalculateReserveSchedule(policy *Policy, mortalityTable MortalityTable, net
 	return reserveSchedule
 }
 
+func CalculateWholeLifeReserveSchedule(policy *Policy, mortalityTable MortalityTable, netPremium float64) []float64 {
+	maxAge := len(mortalityTable) - 1
+	lifetimeYears := maxAge - policy.Age
+	reserveSchedule := make([]float64, lifetimeYears+1)
+
+	for currentYear := 0; currentYear <= lifetimeYears; currentYear++ {
+		currentAgeAtYear := policy.Age + currentYear
+		if currentAgeAtYear >= len(mortalityTable) {
+			break
+		}
+
+		futureBenefitValue := 0.0
+		futurePremiumValue := 0.0
+		remainingLifetimeYears := lifetimeYears - currentYear
+
+		for futureYear := 0; futureYear < remainingLifetimeYears; futureYear++ {
+			ageAtFutureYear := currentAgeAtYear + futureYear
+			if ageAtFutureYear >= len(mortalityTable) {
+				break
+			}
+
+			survivalProbability := 1.0
+			for yearIndex := 0; yearIndex < futureYear; yearIndex++ {
+				survivalProbability *= (1.0 - mortalityTable[currentAgeAtYear+yearIndex])
+			}
+
+			deathProbability := mortalityTable[ageAtFutureYear]
+			benefitPresentValue := CalculatePresentValue(policy.CoverageAmount, policy.InterestRate, futureYear+1)
+			futureBenefitValue += survivalProbability * deathProbability * benefitPresentValue
+
+			// Premium payments only during premium paying period
+			if currentYear+futureYear < policy.Term {
+				premiumPresentValue := CalculatePresentValue(netPremium, policy.InterestRate, futureYear)
+				futurePremiumValue += survivalProbability * premiumPresentValue
+			}
+		}
+
+		reserveSchedule[currentYear] = futureBenefitValue - futurePremiumValue
+	}
+
+	return reserveSchedule
+}
+
 func CalculateFullPremium(policy *Policy, mortalityTable MortalityTable) PremiumCalculation {
+	// Set default product type if not specified
+	if policy.ProductType == "" {
+		policy.ProductType = "term_life"
+	}
+
 	netPremium := CalculateNetPremium(policy, mortalityTable)
 	expenseAssumptions := CreateDefaultExpenses()
 	grossPremium := CalculateGrossPremium(policy, mortalityTable, netPremium, expenseAssumptions)
@@ -196,7 +295,7 @@ func CalculateFullPremium(policy *Policy, mortalityTable MortalityTable) Premium
 		NetPremium:      netPremium,
 		GrossPremium:    grossPremium,
 		ReserveSchedule: reserveSchedule,
-		ProductType:     "term_life",
+		ProductType:     policy.ProductType,
 		ExpenseDetails:  expenseBreakdown,
 	}
 }

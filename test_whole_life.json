@@ -1,0 +1,8 @@
+{
+  "age": 35,
+  "term": 20,
+  "sum_assured": 100000,
+  "interest_rate": 0.05,
+  "table_name": "male",
+  "product_type": "whole_life"
+}
