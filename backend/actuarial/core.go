@@ -11,229 +11,193 @@ import (
 	"strings"
 )
 
-// MortalityTable represents a slice of mortality rates (qx) indexed by age.
 type MortalityTable []float64
 
-// PolicyHolder represents the input parameters for an insurance policy.
-type PolicyHolder struct {
+type Policy struct {
 	Age          int     `json:"age"`
 	Term         int     `json:"term"`
-	SumAssured   float64 `json:"sum_assured"`
+	CoverageAmount   float64 `json:"sum_assured"`
 	InterestRate float64 `json:"interest_rate"`
-	TableName    string  `json:"table_name"` // e.g., "male", "female"
+	Gender    string  `json:"table_name"`
 }
 
-// ProductType represents different life insurance products
-type ProductType string
+type PremiumCalculation struct {
+	NetPremium      float64            `json:"net_premium"`
+	GrossPremium    float64            `json:"gross_premium"`
+	ReserveSchedule []float64          `json:"reserve_schedule"`
+	ProductType     string             `json:"product_type"`
+	ExpenseDetails  map[string]float64 `json:"expenses,omitempty"`
+}
 
-const (
-	TermLife     ProductType = "term_life"
-	WholeLife    ProductType = "whole_life"
-	Endowment    ProductType = "endowment"
-	PureEndowment ProductType = "pure_endowment"
-)
-
-// CalculationResult holds the output of the actuarial calculations.
-type CalculationResult struct {
-	NetPremium      float64   `json:"net_premium"`
-	GrossPremium    float64   `json:"gross_premium"`
-	ReserveSchedule []float64 `json:"reserve_schedule"`
-	Product         string    `json:"product_type"`
-	Expenses        map[string]float64 `json:"expenses,omitempty"`
+type ExpenseStructure struct {
+	InitialExpenseRate float64
+	RenewalExpenseRate float64
+	MaintenanceExpense float64
+	ProfitMargin       float64
 }
 
 // LoadMortalityTable reads a mortality table from a CSV file into a MortalityTable slice.
 // It expects the CSV to have a header row, be tab-delimited, and have the qx value
 // in the third column.
-func LoadMortalityTable(path string) (MortalityTable, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
+func LoadMortalityTable(filePath string) (MortalityTable, error) {
+	file, openError := os.Open(filePath)
+	if openError != nil {
+		return nil, fmt.Errorf("could not open file: %w", openError)
 	}
-	defer f.Close()
+	defer file.Close()
 
-	reader := csv.NewReader(f)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields
-	reader.Comma = '\t'      // Use tab as delimiter
+	csvReader := csv.NewReader(file)
+	csvReader.FieldsPerRecord = -1
+	csvReader.Comma = '\t'
 
-	// Skip header
-	if _, err := reader.Read(); err != nil {
-		return nil, fmt.Errorf("failed to read header: %w", err)
+	_, headerError := csvReader.Read()
+	if headerError != nil {
+		return nil, fmt.Errorf("could not read header: %w", headerError)
 	}
 
-	var table MortalityTable
+	var mortalityRates MortalityTable
 	for {
-		rec, err := reader.Read()
-		if err == io.EOF {
+		row, readError := csvReader.Read()
+		if readError == io.EOF {
 			break
 		}
-		if err != nil {
-			return nil, fmt.Errorf("failed to read record: %w", err)
+		if readError != nil {
+			return nil, fmt.Errorf("could not read row: %w", readError)
 		}
 
-		if len(rec) > 2 {
-			valStr := strings.TrimSpace(rec[2])
-			qx, err := strconv.ParseFloat(valStr, 64)
-			if err != nil {
-				valStr = strings.TrimSpace(rec[1])
-				qx, err = strconv.ParseFloat(valStr, 64)
-				if err != nil {
+		if len(row) > 2 {
+			mortalityRateText := strings.TrimSpace(row[2])
+			mortalityRate, parseError := strconv.ParseFloat(mortalityRateText, 64)
+			if parseError != nil {
+				mortalityRateText = strings.TrimSpace(row[1])
+				mortalityRate, parseError = strconv.ParseFloat(mortalityRateText, 64)
+				if parseError != nil {
 					continue
 				}
 			}
-			table = append(table, qx)
+			mortalityRates = append(mortalityRates, mortalityRate)
 		}
 	}
 
-	return table, nil
+	return mortalityRates, nil
 }
 
 // PresentValue calculates the present value of a single future payment.
-func PresentValue(amount, interestRate float64, years int) float64 {
-	return amount / math.Pow(1+interestRate, float64(years))
+func CalculatePresentValue(futureAmount float64, interestRate float64, numberOfYears int) float64 {
+	discountFactor := math.Pow(1+interestRate, float64(numberOfYears))
+	return futureAmount / discountFactor
 }
 
-// NetPremium calculates the net premium for a term life insurance policy.
-// It is calculated based on the equivalence principle, where the present value
-// of expected future premiums equals the present value of the expected future death benefit.
-func NetPremium(p *PolicyHolder, table MortalityTable) float64 {
-	var expectedFutureDeathBenefit float64
-	var expectedFuturePremiums float64
+func CalculateNetPremium(policy *Policy, mortalityTable MortalityTable) float64 {
+	totalExpectedDeathBenefit := 0.0
+	totalExpectedPremiumPayments := 0.0
 
-	for t := 0; t < p.Term; t++ {
-		// Probability of surviving to year t
-		px := 1.0
-		for i := 0; i < t; i++ {
-			px *= (1 - table[p.Age+i])
+	for year := 0; year < policy.Term; year++ {
+		currentAge := policy.Age + year
+		if currentAge >= len(mortalityTable) {
+			break
 		}
 
-		// Probability of dying in year t
-		qx := table[p.Age+t]
+		survivalProbability := 1.0
+		for previousYear := 0; previousYear < year; previousYear++ {
+			survivalProbability *= (1.0 - mortalityTable[policy.Age+previousYear])
+		}
 
-		// PV of death benefit paid at the end of year t+1
-		deathBenefit := PresentValue(p.SumAssured, p.InterestRate, t+1)
-		expectedFutureDeathBenefit += px * qx * deathBenefit
+		deathProbability := mortalityTable[currentAge]
+		deathBenefitPresentValue := CalculatePresentValue(policy.CoverageAmount, policy.InterestRate, year+1)
+		premiumPresentValue := CalculatePresentValue(1.0, policy.InterestRate, year)
 
-		// PV of premium paid at the beginning of year t
-		premiumAnnuity := PresentValue(1, p.InterestRate, t)
-		expectedFuturePremiums += px * premiumAnnuity
+		totalExpectedDeathBenefit += survivalProbability * deathProbability * deathBenefitPresentValue
+		totalExpectedPremiumPayments += survivalProbability * premiumPresentValue
 	}
 
-	if expectedFuturePremiums == 0 {
-		return 0
+	if totalExpectedPremiumPayments > 0 {
+		return totalExpectedDeathBenefit / totalExpectedPremiumPayments
 	}
-
-	return expectedFutureDeathBenefit / expectedFuturePremiums
+	return 0
 }
 
-// ExpenseStructure represents the expense assumptions for gross premium calculations
-type ExpenseStructure struct {
-	InitialExpenseRate   float64 // Percentage of sum assured for initial expenses
-	RenewalExpenseRate   float64 // Percentage of gross premium for renewal expenses
-	MaintenanceExpense   float64 // Fixed annual maintenance expense
-	ProfitMargin        float64 // Profit margin as percentage of net premium
-}
-
-// DefaultExpenseStructure returns typical expense assumptions for Botswana market
-func DefaultExpenseStructure() ExpenseStructure {
+func CreateDefaultExpenses() ExpenseStructure {
 	return ExpenseStructure{
-		InitialExpenseRate: 0.03,   // 3% of sum assured for initial expenses
-		RenewalExpenseRate: 0.05,   // 5% of gross premium for renewal expenses
-		MaintenanceExpense: 50.0,   // BWP 50 per year maintenance
-		ProfitMargin:      0.15,    // 15% profit margin
+		InitialExpenseRate: 0.03,
+		RenewalExpenseRate: 0.05,
+		MaintenanceExpense: 50.0,
+		ProfitMargin:       0.15,
 	}
 }
 
-// GrossPremium calculates the gross premium including expenses and profit margin
-func GrossPremium(p *PolicyHolder, table MortalityTable, netPremium float64, expenses ExpenseStructure) float64 {
-	// Calculate expected present value of expenses
-	initialExpenses := p.SumAssured * expenses.InitialExpenseRate
-	
-	// Present value of maintenance expenses over the term
-	var pvMaintenanceExpenses float64
-	for t := 0; t < p.Term; t++ {
-		// Probability of policy being in force at time t
-		px := 1.0
-		for i := 0; i < t; i++ {
-			px *= (1 - table[p.Age+i])
-		}
-		pvMaintenanceExpenses += px * PresentValue(expenses.MaintenanceExpense, p.InterestRate, t)
+func CalculateGrossPremium(policy *Policy, mortalityTable MortalityTable, netPremium float64, expenses ExpenseStructure) float64 {
+	initialExpenseAmount := policy.CoverageAmount * expenses.InitialExpenseRate
+	profitLoading := netPremium * expenses.ProfitMargin
+	basePremium := netPremium + profitLoading
+
+	for iteration := 0; iteration < 3; iteration++ {
+		renewalExpenseAmount := basePremium * expenses.RenewalExpenseRate
+		totalExpensePerYear := (initialExpenseAmount + renewalExpenseAmount + expenses.MaintenanceExpense) / float64(policy.Term)
+		basePremium = netPremium + profitLoading + totalExpensePerYear
 	}
-	
-	// Add profit margin to net premium
-	profitLoadedPremium := netPremium * (1 + expenses.ProfitMargin)
-	
-	// Calculate gross premium iteratively (since renewal expenses depend on gross premium)
-	grossPremium := profitLoadedPremium
-	for i := 0; i < 5; i++ { // Iterate to converge
-		// Present value of renewal expenses
-		var pvRenewalExpenses float64
-		for t := 1; t < p.Term; t++ { // Start from t=1 (no renewal expense in first year)
-			// Probability of policy being in force at time t
-			px := 1.0
-			for j := 0; j < t; j++ {
-				px *= (1 - table[p.Age+j])
-			}
-			renewalExpense := grossPremium * expenses.RenewalExpenseRate
-			pvRenewalExpenses += px * PresentValue(renewalExpense, p.InterestRate, t)
-		}
-		
-		// Present value of future gross premiums (for covering expenses)
-		var pvGrossPremiums float64
-		for t := 0; t < p.Term; t++ {
-			px := 1.0
-			for j := 0; j < t; j++ {
-				px *= (1 - table[p.Age+j])
-			}
-			pvGrossPremiums += px * PresentValue(1.0, p.InterestRate, t)
-		}
-		
-		if pvGrossPremiums > 0 {
-			totalExpenses := initialExpenses + pvMaintenanceExpenses + pvRenewalExpenses
-			grossPremium = (profitLoadedPremium + totalExpenses/pvGrossPremiums)
-		}
-	}
-	
-	return math.Round(grossPremium*100) / 100
+
+	return math.Round(basePremium*100) / 100
 }
 
-// NetPremiumReserves calculates the net premium reserve at the end of each year.
-// The reserve at time t is the expected present value of future benefits minus the
-// expected present value of future net premiums at that time.
-func NetPremiumReserves(p *PolicyHolder, table MortalityTable, netPremium float64) []float64 {
-	// The reserve schedule has n+1 elements, from t=0 to t=n.
-	reserves := make([]float64, p.Term+1)
+func CalculateReserveSchedule(policy *Policy, mortalityTable MortalityTable, netPremium float64) []float64 {
+	reserveSchedule := make([]float64, policy.Term+1)
 
-	for t := 0; t <= p.Term; t++ {
-		// At the end of the term (t=n), the reserve is 0.
-		if t == p.Term {
-			reserves[t] = 0
+	for currentYear := 0; currentYear <= policy.Term; currentYear++ {
+		if currentYear == policy.Term {
+			reserveSchedule[currentYear] = 0
 			continue
 		}
 
-		var futureDeathBenefit float64
-		var futurePremiums float64
+		futureBenefitValue := 0.0
+		futurePremiumValue := 0.0
+		remainingYears := policy.Term - currentYear
+		currentAgeAtYear := policy.Age + currentYear
 
-		// Calculate the reserve for a policy of age x+t with remaining term n-t.
-		for i := 0; i < p.Term-t; i++ {
-			// Probability of surviving from age x+t to age x+t+i
-			px := 1.0
-			for j := 0; j < i; j++ {
-				px *= (1 - table[p.Age+t+j])
+		for futureYear := 0; futureYear < remainingYears; futureYear++ {
+			ageAtFutureYear := currentAgeAtYear + futureYear
+			if ageAtFutureYear >= len(mortalityTable) {
+				break
 			}
 
-			// Probability of dying in the following year
-			qx := table[p.Age+t+i]
+			survivalProbability := 1.0
+			for yearIndex := 0; yearIndex < futureYear; yearIndex++ {
+				survivalProbability *= (1.0 - mortalityTable[currentAgeAtYear+yearIndex])
+			}
 
-			deathBenefit := PresentValue(p.SumAssured, p.InterestRate, i+1)
-			futureDeathBenefit += px * qx * deathBenefit
+			deathProbability := mortalityTable[ageAtFutureYear]
+			benefitPresentValue := CalculatePresentValue(policy.CoverageAmount, policy.InterestRate, futureYear+1)
+			premiumPresentValue := CalculatePresentValue(netPremium, policy.InterestRate, futureYear)
 
-			premiumAnnuity := PresentValue(1, p.InterestRate, i)
-			futurePremiums += px * premiumAnnuity
+			futureBenefitValue += survivalProbability * deathProbability * benefitPresentValue
+			futurePremiumValue += survivalProbability * premiumPresentValue
 		}
 
-		reserves[t] = futureDeathBenefit - (netPremium * futurePremiums)
+		reserveSchedule[currentYear] = futureBenefitValue - futurePremiumValue
 	}
 
-	return reserves
+	return reserveSchedule
 }
+
+func CalculateFullPremium(policy *Policy, mortalityTable MortalityTable) PremiumCalculation {
+	netPremium := CalculateNetPremium(policy, mortalityTable)
+	expenseAssumptions := CreateDefaultExpenses()
+	grossPremium := CalculateGrossPremium(policy, mortalityTable, netPremium, expenseAssumptions)
+	reserveSchedule := CalculateReserveSchedule(policy, mortalityTable, netPremium)
+
+	expenseBreakdown := map[string]float64{
+		"initial_expense_rate": expenseAssumptions.InitialExpenseRate,
+		"renewal_expense_rate": expenseAssumptions.RenewalExpenseRate,
+		"maintenance_expense":  expenseAssumptions.MaintenanceExpense,
+		"profit_margin":        expenseAssumptions.ProfitMargin,
+	}
+
+	return PremiumCalculation{
+		NetPremium:      netPremium,
+		GrossPremium:    grossPremium,
+		ReserveSchedule: reserveSchedule,
+		ProductType:     "term_life",
+		ExpenseDetails:  expenseBreakdown,
+	}
+}
+
