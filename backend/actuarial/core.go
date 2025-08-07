@@ -19,15 +19,23 @@ type Policy struct {
 	CoverageAmount float64 `json:"sum_assured"`
 	InterestRate   float64 `json:"interest_rate"`
 	Gender         string  `json:"table_name"`
-	ProductType    string  `json:"product_type"` // "term_life" or "whole_life"
+	ProductType    string  `json:"product_type"` // "term_life", "whole_life", "immediate_annuity", "deferred_annuity"
+	SmokerStatus   string  `json:"smoker_status,omitempty"` // "smoker", "non_smoker", "unknown"
+	HealthRating   string  `json:"health_rating,omitempty"` // "standard", "substandard", "preferred"
+	RatingFactor   float64 `json:"rating_factor,omitempty"` // Mortality multiplier (1.0 = standard, >1.0 = substandard)
+	DeferralPeriod int     `json:"deferral_period,omitempty"` // Years until annuity payments start
 }
 
 type PremiumCalculation struct {
-	NetPremium      float64            `json:"net_premium"`
-	GrossPremium    float64            `json:"gross_premium"`
-	ReserveSchedule []float64          `json:"reserve_schedule"`
-	ProductType     string             `json:"product_type"`
-	ExpenseDetails  map[string]float64 `json:"expenses,omitempty"`
+	NetPremium        float64            `json:"net_premium"`
+	GrossPremium      float64            `json:"gross_premium"`
+	ReserveSchedule   []float64          `json:"reserve_schedule"`
+	ProductType       string             `json:"product_type"`
+	ExpenseDetails    map[string]float64 `json:"expenses,omitempty"`
+	AnnualPayout      float64            `json:"annual_payout,omitempty"`      // For annuities
+	TotalPremiumCost  float64            `json:"total_premium_cost,omitempty"` // For annuities
+	UnderwritingInfo  map[string]interface{} `json:"underwriting,omitempty"`
+	RiskAssessment    map[string]float64 `json:"risk_assessment,omitempty"`
 }
 
 type ExpenseStructure struct {
@@ -273,30 +281,183 @@ func CalculateWholeLifeReserveSchedule(policy *Policy, mortalityTable MortalityT
 	return reserveSchedule
 }
 
+// Apply underwriting factors to mortality table
+func ApplyUnderwritingFactors(policy *Policy, baseMortalityTable MortalityTable) MortalityTable {
+	adjustedTable := make(MortalityTable, len(baseMortalityTable))
+	copy(adjustedTable, baseMortalityTable)
+
+	// Apply rating factor
+	ratingMultiplier := 1.0
+	if policy.RatingFactor > 0 {
+		ratingMultiplier = policy.RatingFactor
+	} else {
+		// Apply standard underwriting factors
+		switch policy.SmokerStatus {
+		case "smoker":
+			ratingMultiplier = 2.0 // Smokers have roughly 2x mortality
+		case "non_smoker":
+			ratingMultiplier = 0.8 // Non-smokers get a discount
+		default:
+			ratingMultiplier = 1.0
+		}
+
+		switch policy.HealthRating {
+		case "preferred":
+			ratingMultiplier *= 0.75 // 25% discount for preferred risks
+		case "substandard":
+			ratingMultiplier *= 1.5 // 50% loading for substandard risks
+		default:
+			ratingMultiplier *= 1.0
+		}
+	}
+
+	// Apply the multiplier to all mortality rates, capping at 1.0
+	for i, rate := range adjustedTable {
+		adjustedTable[i] = math.Min(rate*ratingMultiplier, 1.0)
+	}
+
+	return adjustedTable
+}
+
+// Calculate immediate annuity premium
+func CalculateImmediateAnnuityPremium(policy *Policy, mortalityTable MortalityTable) float64 {
+	totalPresentValue := 0.0
+	maxAge := len(mortalityTable) - 1
+
+	for year := 0; year < maxAge-policy.Age; year++ {
+		currentAge := policy.Age + year
+		if currentAge >= len(mortalityTable) {
+			break
+		}
+
+		survivalProbability := 1.0
+		for previousYear := 0; previousYear < year; previousYear++ {
+			survivalProbability *= (1.0 - mortalityTable[policy.Age+previousYear])
+		}
+
+		annuityPaymentPV := CalculatePresentValue(policy.CoverageAmount, policy.InterestRate, year)
+		totalPresentValue += survivalProbability * annuityPaymentPV
+	}
+
+	return totalPresentValue
+}
+
+// Calculate deferred annuity premium
+func CalculateDeferredAnnuityPremium(policy *Policy, mortalityTable MortalityTable) float64 {
+	totalPresentValue := 0.0
+	maxAge := len(mortalityTable) - 1
+	deferralPeriod := policy.DeferralPeriod
+
+	// Calculate survival probability to deferral period
+	survivalToDeferral := 1.0
+	for year := 0; year < deferralPeriod; year++ {
+		currentAge := policy.Age + year
+		if currentAge >= len(mortalityTable) {
+			return 0
+		}
+		survivalToDeferral *= (1.0 - mortalityTable[currentAge])
+	}
+
+	// Calculate annuity payments starting after deferral period
+	for year := deferralPeriod; year < maxAge-policy.Age; year++ {
+		currentAge := policy.Age + year
+		if currentAge >= len(mortalityTable) {
+			break
+		}
+
+		survivalProbability := survivalToDeferral
+		for previousYear := deferralPeriod; previousYear < year; previousYear++ {
+			survivalProbability *= (1.0 - mortalityTable[policy.Age+previousYear])
+		}
+
+		annuityPaymentPV := CalculatePresentValue(policy.CoverageAmount, policy.InterestRate, year)
+		totalPresentValue += survivalProbability * annuityPaymentPV
+	}
+
+	return totalPresentValue
+}
+
+// Risk assessment for underwriting
+func AssessRisk(policy *Policy, mortalityTable MortalityTable) map[string]float64 {
+	baseRate := mortalityTable[policy.Age]
+	adjustedTable := ApplyUnderwritingFactors(policy, mortalityTable)
+	adjustedRate := adjustedTable[policy.Age]
+
+	return map[string]float64{
+		"base_mortality_rate":     baseRate,
+		"adjusted_mortality_rate": adjustedRate,
+		"risk_multiplier":         adjustedRate / baseRate,
+		"annual_death_probability": adjustedRate,
+		"expected_lifetime_years":  1.0 / adjustedRate,
+	}
+}
+
 func CalculateFullPremium(policy *Policy, mortalityTable MortalityTable) PremiumCalculation {
 	// Set default product type if not specified
 	if policy.ProductType == "" {
 		policy.ProductType = "term_life"
 	}
 
-	netPremium := CalculateNetPremium(policy, mortalityTable)
-	expenseAssumptions := CreateDefaultExpenses()
-	grossPremium := CalculateGrossPremium(policy, mortalityTable, netPremium, expenseAssumptions)
-	reserveSchedule := CalculateReserveSchedule(policy, mortalityTable, netPremium)
+	// Apply underwriting factors
+	adjustedMortalityTable := ApplyUnderwritingFactors(policy, mortalityTable)
+	riskAssessment := AssessRisk(policy, mortalityTable)
 
-	expenseBreakdown := map[string]float64{
-		"initial_expense_rate": expenseAssumptions.InitialExpenseRate,
-		"renewal_expense_rate": expenseAssumptions.RenewalExpenseRate,
-		"maintenance_expense":  expenseAssumptions.MaintenanceExpense,
-		"profit_margin":        expenseAssumptions.ProfitMargin,
+	var result PremiumCalculation
+	result.ProductType = policy.ProductType
+	result.RiskAssessment = riskAssessment
+
+	// Build underwriting info
+	underwritingInfo := make(map[string]interface{})
+	if policy.SmokerStatus != "" {
+		underwritingInfo["smoker_status"] = policy.SmokerStatus
+	}
+	if policy.HealthRating != "" {
+		underwritingInfo["health_rating"] = policy.HealthRating
+	}
+	if policy.RatingFactor > 0 {
+		underwritingInfo["custom_rating_factor"] = policy.RatingFactor
+	}
+	if len(underwritingInfo) > 0 {
+		result.UnderwritingInfo = underwritingInfo
 	}
 
-	return PremiumCalculation{
-		NetPremium:      netPremium,
-		GrossPremium:    grossPremium,
-		ReserveSchedule: reserveSchedule,
-		ProductType:     policy.ProductType,
-		ExpenseDetails:  expenseBreakdown,
+	// Handle different product types
+	switch policy.ProductType {
+	case "immediate_annuity":
+		premiumCost := CalculateImmediateAnnuityPremium(policy, adjustedMortalityTable)
+		result.TotalPremiumCost = premiumCost
+		result.AnnualPayout = policy.CoverageAmount
+		result.NetPremium = premiumCost
+		result.GrossPremium = premiumCost * 1.1 // Simple 10% loading for annuities
+		return result
+
+	case "deferred_annuity":
+		premiumCost := CalculateDeferredAnnuityPremium(policy, adjustedMortalityTable)
+		result.TotalPremiumCost = premiumCost
+		result.AnnualPayout = policy.CoverageAmount
+		result.NetPremium = premiumCost
+		result.GrossPremium = premiumCost * 1.1 // Simple 10% loading for annuities
+		return result
+
+	default:
+		// Life insurance calculations
+		netPremium := CalculateNetPremium(policy, adjustedMortalityTable)
+		expenseAssumptions := CreateDefaultExpenses()
+		grossPremium := CalculateGrossPremium(policy, adjustedMortalityTable, netPremium, expenseAssumptions)
+		reserveSchedule := CalculateReserveSchedule(policy, adjustedMortalityTable, netPremium)
+
+		expenseBreakdown := map[string]float64{
+			"initial_expense_rate": expenseAssumptions.InitialExpenseRate,
+			"renewal_expense_rate": expenseAssumptions.RenewalExpenseRate,
+			"maintenance_expense":  expenseAssumptions.MaintenanceExpense,
+			"profit_margin":        expenseAssumptions.ProfitMargin,
+		}
+
+		result.NetPremium = netPremium
+		result.GrossPremium = grossPremium
+		result.ReserveSchedule = reserveSchedule
+		result.ExpenseDetails = expenseBreakdown
+		return result
 	}
 }
 

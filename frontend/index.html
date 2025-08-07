@@ -36,9 +36,11 @@
                     </div>
                     <div>
                         <label for="product_type" class="block text-sm font-medium text-gray-700">Product Type</label>
-                        <select id="product_type" name="product_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" onchange="toggleTermField()">
+                        <select id="product_type" name="product_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" onchange="toggleProductFields()">
                             <option value="term_life">Term Life Insurance</option>
                             <option value="whole_life">Whole Life Insurance</option>
+                            <option value="immediate_annuity">Immediate Annuity</option>
+                            <option value="deferred_annuity">Deferred Annuity</option>
                         </select>
                     </div>
                     <div>
@@ -57,9 +59,46 @@
                             <option value="female">Female</option>
                         </select>
                     </div>
+                    <div id="deferral_field" class="hidden">
+                        <label for="deferral_period" class="block text-sm font-medium text-gray-700">Deferral Period (years)</label>
+                        <input type="number" id="deferral_period" name="deferral_period" min="1" max="40" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 10">
+                        <p class="text-xs text-gray-500 mt-1">Years to wait before annuity payments begin</p>
+                    </div>
                 </div>
-                <div class="mt-4">
+                
+                <!-- Underwriting Section -->
+                <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Underwriting Factors (Optional)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="smoker_status" class="block text-sm font-medium text-gray-700">Smoker Status</label>
+                            <select id="smoker_status" name="smoker_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="">Unknown/Standard</option>
+                                <option value="non_smoker">Non-smoker</option>
+                                <option value="smoker">Smoker</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="health_rating" class="block text-sm font-medium text-gray-700">Health Rating</label>
+                            <select id="health_rating" name="health_rating" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option value="">Standard</option>
+                                <option value="preferred">Preferred</option>
+                                <option value="substandard">Substandard</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="rating_factor" class="block text-sm font-medium text-gray-700">Custom Rating Factor</label>
+                            <input type="number" id="rating_factor" name="rating_factor" min="0.5" max="5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 1.0">
+                            <p class="text-xs text-gray-500 mt-1">1.0 = standard risk, >1.0 = higher risk</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 flex space-x-4">
                     <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Calculate Premiums</button>
+                    <button type="button" id="sensitivity-btn" class="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Sensitivity Analysis</button>
+                    <button type="button" id="comparison-btn" class="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Compare Policies</button>
+                </div>
                 </div>
             </form>
             <div id="premium-result" class="mt-8 hidden">
@@ -161,17 +200,45 @@
     <script src="js/pricing.js"></script>
     <script src="js/reserving.js"></script>
     <script>
-        function toggleTermField() {
+        function toggleProductFields() {
             const productType = document.getElementById('product_type').value;
             const termLabel = document.getElementById('term_label');
             const termHelp = document.getElementById('term_help');
+            const termField = document.getElementById('term');
+            const sumAssuredLabel = document.querySelector('label[for="sum_assured"]');
+            const deferralField = document.getElementById('deferral_field');
             
-            if (productType === 'whole_life') {
-                termLabel.textContent = 'Premium Paying Period (years)';
-                termHelp.textContent = 'Number of years to pay premiums (coverage is for life)';
-            } else {
-                termLabel.textContent = 'Term (years)';
-                termHelp.textContent = 'Coverage period for term life insurance';
+            // Reset visibility
+            deferralField.classList.add('hidden');
+            
+            switch(productType) {
+                case 'whole_life':
+                    termLabel.textContent = 'Premium Paying Period (years)';
+                    termHelp.textContent = 'Number of years to pay premiums (coverage is for life)';
+                    sumAssuredLabel.textContent = 'Coverage Amount (BWP)';
+                    termField.required = true;
+                    break;
+                case 'immediate_annuity':
+                    termLabel.textContent = 'Not Required';
+                    termHelp.textContent = 'Annuity payments start immediately';
+                    sumAssuredLabel.textContent = 'Annual Payout (BWP)';
+                    termField.required = false;
+                    termField.value = 0;
+                    break;
+                case 'deferred_annuity':
+                    termLabel.textContent = 'Not Required';
+                    termHelp.textContent = 'Annuity payments start after deferral period';
+                    sumAssuredLabel.textContent = 'Annual Payout (BWP)';
+                    deferralField.classList.remove('hidden');
+                    termField.required = false;
+                    termField.value = 0;
+                    break;
+                default: // term_life
+                    termLabel.textContent = 'Term (years)';
+                    termHelp.textContent = 'Coverage period for term life insurance';
+                    sumAssuredLabel.textContent = 'Sum Assured (BWP)';
+                    termField.required = true;
+                    break;
             }
         }
     </script>

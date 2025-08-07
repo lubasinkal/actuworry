@@ -1,0 +1,88 @@
+{
+  "immediate_annuity_test": {
+    "age": 65,
+    "sum_assured": 12000,
+    "interest_rate": 0.04,
+    "table_name": "female",
+    "product_type": "immediate_annuity"
+  },
+  "deferred_annuity_test": {
+    "age": 45,
+    "sum_assured": 18000,
+    "interest_rate": 0.05,
+    "table_name": "male",
+    "product_type": "deferred_annuity",
+    "deferral_period": 20
+  },
+  "underwriting_smoker_test": {
+    "age": 40,
+    "term": 15,
+    "sum_assured": 200000,
+    "interest_rate": 0.05,
+    "table_name": "male",
+    "product_type": "term_life",
+    "smoker_status": "smoker",
+    "health_rating": "standard"
+  },
+  "underwriting_preferred_test": {
+    "age": 35,
+    "term": 20,
+    "sum_assured": 150000,
+    "interest_rate": 0.05,
+    "table_name": "female",
+    "product_type": "whole_life",
+    "smoker_status": "non_smoker",
+    "health_rating": "preferred"
+  },
+  "sensitivity_analysis_test": {
+    "base_policy": {
+      "age": 35,
+      "term": 10,
+      "sum_assured": 100000,
+      "interest_rate": 0.05,
+      "table_name": "male",
+      "product_type": "term_life"
+    },
+    "interest_rates": [0.03, 0.04, 0.05, 0.06, 0.07],
+    "ages": [30, 35, 40, 45, 50],
+    "coverage_amounts": [50000, 100000, 150000, 200000, 250000]
+  },
+  "portfolio_analysis_test": {
+    "policies": [
+      {
+        "age": 35,
+        "term": 10,
+        "sum_assured": 100000,
+        "interest_rate": 0.05,
+        "table_name": "male",
+        "product_type": "term_life",
+        "smoker_status": "non_smoker"
+      },
+      {
+        "age": 42,
+        "term": 20,
+        "sum_assured": 200000,
+        "interest_rate": 0.05,
+        "table_name": "female",
+        "product_type": "whole_life",
+        "health_rating": "preferred"
+      },
+      {
+        "age": 28,
+        "term": 15,
+        "sum_assured": 75000,
+        "interest_rate": 0.045,
+        "table_name": "male",
+        "product_type": "term_life",
+        "smoker_status": "smoker"
+      },
+      {
+        "age": 65,
+        "sum_assured": 15000,
+        "interest_rate": 0.04,
+        "table_name": "female",
+        "product_type": "immediate_annuity"
+      }
+    ]
+  }
+}
