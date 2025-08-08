@@ -9,4 +9,5 @@ echo "Loading mortality tables and starting server..."
 echo ""
 
 # Run the Go backend from the project root
-go run backend/main.go
+# Use the new cmd/server structure
+go run backend/cmd/server/main.go

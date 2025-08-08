@@ -1,249 +1,391 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Actuworry</title>
+    <title>Actuworry - Life Insurance Actuarial Platform</title>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Custom Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#7C3AED',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        [x-cloak] { display: none !important; }
+        .chart-container { position: relative; height: 400px; }
+    </style>
 </head>
-<body class="bg-gray-100 text-gray-900">
-    <nav class="bg-white shadow-md">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center py-4">
-                <a href="#" class="text-2xl font-bold text-indigo-600">Actuworry</a>
-                <div class="hidden md:flex space-x-4">
-                    <a href="#pricing" class="text-gray-600 hover:text-indigo-600">Pricing</a>
-                    <a href="#reserving" class="text-gray-600 hover:text-indigo-600">Reserving</a>
+<body class="bg-gray-50" x-data="actuarialApp()">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                        🇧🇼 Actuworry
+                    </h1>
+                    <span class="ml-3 text-sm text-gray-500">Life Insurance Actuarial Platform</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button @click="activeTab = 'calculator'" 
+                            :class="activeTab === 'calculator' ? 'text-primary border-b-2 border-primary' : 'text-gray-600'"
+                            class="px-3 py-2 font-medium">
+                        Calculator
+                    </button>
+                    <button @click="activeTab = 'portfolio'" 
+                            :class="activeTab === 'portfolio' ? 'text-primary border-b-2 border-primary' : 'text-gray-600'"
+                            class="px-3 py-2 font-medium">
+                        Portfolio
+                    </button>
+                    <button @click="activeTab = 'sensitivity'" 
+                            :class="activeTab === 'sensitivity' ? 'text-primary border-b-2 border-primary' : 'text-gray-600'"
+                            class="px-3 py-2 font-medium">
+                        Sensitivity
+                    </button>
                 </div>
             </div>
         </div>
     </nav>
 
-    <div id="pricing" class="container mx-auto p-4">
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h2 class="text-2xl font-bold mb-4">Life Insurance Pricing</h2>
-            <form id="pricing-form">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div>
-                        <label for="age" class="block text-sm font-medium text-gray-700">Age</label>
-                        <input type="number" id="age" name="age" min="18" max="80" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 35" required>
-                    </div>
-                    <div>
-                        <label for="sum_assured" class="block text-sm font-medium text-gray-700">Sum Assured (BWP)</label>
-                        <input type="number" id="sum_assured" name="sum_assured" min="10000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 100000" required>
-                    </div>
-                    <div>
-                        <label for="product_type" class="block text-sm font-medium text-gray-700">Product Type</label>
-                        <select id="product_type" name="product_type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" onchange="toggleProductFields()">
-                            <option value="term_life">Term Life Insurance</option>
-                            <option value="whole_life">Whole Life Insurance</option>
-                            <option value="immediate_annuity">Immediate Annuity</option>
-                            <option value="deferred_annuity">Deferred Annuity</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="term" class="block text-sm font-medium text-gray-700" id="term_label">Term (years)</label>
-                        <input type="number" id="term" name="term" min="1" max="40" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 10" required>
-                        <p class="text-xs text-gray-500 mt-1" id="term_help">Coverage period for term life insurance</p>
-                    </div>
-                    <div>
-                        <label for="interest_rate" class="block text-sm font-medium text-gray-700">Interest Rate (%)</label>
-                        <input type="number" id="interest_rate" name="interest_rate" min="0" max="20" step="0.01" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 5.0" required>
-                    </div>
-                    <div>
-                        <label for="table_name" class="block text-sm font-medium text-gray-700">Mortality Table</label>
-                        <select id="table_name" name="table_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                        </select>
-                    </div>
-                    <div id="deferral_field" class="hidden">
-                        <label for="deferral_period" class="block text-sm font-medium text-gray-700">Deferral Period (years)</label>
-                        <input type="number" id="deferral_period" name="deferral_period" min="1" max="40" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 10">
-                        <p class="text-xs text-gray-500 mt-1">Years to wait before annuity payments begin</p>
-                    </div>
-                </div>
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Calculator Tab -->
+        <div x-show="activeTab === 'calculator'" x-cloak>
+            <div class="bg-white rounded-lg shadow-xl p-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Premium Calculator</h2>
                 
-                <!-- Underwriting Section -->
-                <div class="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h3 class="text-lg font-semibold mb-3 text-gray-800">Underwriting Factors (Optional)</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <form @submit.prevent="calculatePremium()">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Basic Information -->
                         <div>
-                            <label for="smoker_status" class="block text-sm font-medium text-gray-700">Smoker Status</label>
-                            <select id="smoker_status" name="smoker_status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                                <option value="">Unknown/Standard</option>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Age</label>
+                            <input type="number" x-model.number="policy.age" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                   min="18" max="80" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+                            <select x-model="policy.table_name" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Product Type</label>
+                            <select x-model="policy.product_type" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option value="term_life">Term Life</option>
+                                <option value="whole_life">Whole Life</option>
+                                <option value="immediate_annuity">Immediate Annuity</option>
+                                <option value="deferred_annuity">Deferred Annuity</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Coverage Amount (BWP)</label>
+                            <input type="number" x-model.number="policy.sum_assured" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                   min="10000" step="1000" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <span x-text="policy.product_type === 'whole_life' ? 'Premium Paying Period' : 'Term'"></span> (years)
+                            </label>
+                            <input type="number" x-model.number="policy.term" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                   min="1" max="40" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Interest Rate (%)</label>
+                            <input type="number" x-model.number="policy.interest_rate" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                   min="0" max="20" step="0.1" required>
+                        </div>
+                        
+                        <!-- Underwriting Section -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Smoker Status</label>
+                            <select x-model="policy.smoker_status" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option value="">Unknown</option>
                                 <option value="non_smoker">Non-smoker</option>
                                 <option value="smoker">Smoker</option>
                             </select>
                         </div>
+                        
                         <div>
-                            <label for="health_rating" class="block text-sm font-medium text-gray-700">Health Rating</label>
-                            <select id="health_rating" name="health_rating" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Health Rating</label>
+                            <select x-model="policy.health_rating" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent">
                                 <option value="">Standard</option>
                                 <option value="preferred">Preferred</option>
                                 <option value="substandard">Substandard</option>
                             </select>
                         </div>
-                        <div>
-                            <label for="rating_factor" class="block text-sm font-medium text-gray-700">Custom Rating Factor</label>
-                            <input type="number" id="rating_factor" name="rating_factor" min="0.5" max="5" step="0.1" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 1.0">
-                            <p class="text-xs text-gray-500 mt-1">1.0 = standard risk, >1.0 = higher risk</p>
+                        
+                        <div x-show="policy.product_type === 'deferred_annuity'">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Deferral Period (years)</label>
+                            <input type="number" x-model.number="policy.deferral_period" 
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                   min="1" max="30">
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 flex gap-4">
+                        <button type="submit" 
+                                class="px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                                :disabled="loading">
+                            <span x-show="!loading">Calculate Premium</span>
+                            <span x-show="loading">Calculating...</span>
+                        </button>
+                        <button type="button" @click="resetForm()" 
+                                class="px-6 py-3 bg-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-300 transition-colors">
+                            Reset
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Results Section -->
+                <div x-show="result" x-cloak class="mt-8">
+                    <h3 class="text-xl font-bold mb-4 text-gray-800">Calculation Results</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Premium Cards -->
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold text-blue-900">Net Premium</h4>
+                            <p class="text-3xl font-bold text-blue-700 mt-2">
+                                BWP <span x-text="formatNumber(result.net_premium)"></span>
+                            </p>
+                            <p class="text-sm text-blue-600 mt-1">Pure risk premium (annual)</p>
+                        </div>
+                        
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold text-purple-900">Gross Premium</h4>
+                            <p class="text-3xl font-bold text-purple-700 mt-2">
+                                BWP <span x-text="formatNumber(result.gross_premium)"></span>
+                            </p>
+                            <p class="text-sm text-purple-600 mt-1">Market premium with expenses (annual)</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts Section -->
+                    <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-lg border border-gray-200">
+                            <h4 class="text-lg font-semibold mb-4">Reserve Schedule</h4>
+                            <div class="chart-container">
+                                <canvas id="reserveChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-6 rounded-lg border border-gray-200">
+                            <h4 class="text-lg font-semibold mb-4">Premium Breakdown</h4>
+                            <div class="chart-container">
+                                <canvas id="premiumChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Expense Details -->
+                    <div x-show="result.expenses" class="mt-6 bg-yellow-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-yellow-900 mb-2">Expense Structure</h4>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            <div>
+                                <span class="text-yellow-700">Initial:</span>
+                                <span class="font-medium" x-text="(result.expenses.initial_expense_rate * 100).toFixed(1) + '%'"></span>
+                            </div>
+                            <div>
+                                <span class="text-yellow-700">Renewal:</span>
+                                <span class="font-medium" x-text="(result.expenses.renewal_expense_rate * 100).toFixed(1) + '%'"></span>
+                            </div>
+                            <div>
+                                <span class="text-yellow-700">Maintenance:</span>
+                                <span class="font-medium">BWP <span x-text="result.expenses.maintenance_expense"></span></span>
+                            </div>
+                            <div>
+                                <span class="text-yellow-700">Profit Margin:</span>
+                                <span class="font-medium" x-text="(result.expenses.profit_margin * 100).toFixed(1) + '%'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Portfolio Tab -->
+        <div x-show="activeTab === 'portfolio'" x-cloak>
+            <div class="bg-white rounded-lg shadow-xl p-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Portfolio Analysis</h2>
+                
+                <div class="mb-6">
+                    <button @click="addPolicyToPortfolio()" 
+                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        + Add Policy
+                    </button>
+                    <button @click="analyzePortfolio()" 
+                            class="ml-3 px-4 py-2 bg-primary text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                            :disabled="portfolio.length === 0">
+                        Analyze Portfolio
+                    </button>
+                </div>
+                
+                <!-- Portfolio Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coverage</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Term</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="(policy, index) in portfolio" :key="index">
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="policy.age"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="policy.table_name"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="policy.product_type"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="formatNumber(policy.sum_assured)"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap" x-text="policy.term"></td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <button @click="portfolio.splice(index, 1)" 
+                                                class="text-red-600 hover:text-red-900">Remove</button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Portfolio Results -->
+                <div x-show="portfolioResult" x-cloak class="mt-8">
+                    <h3 class="text-xl font-bold mb-4">Portfolio Metrics</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-700">Total Policies</h4>
+                            <p class="text-2xl font-bold" x-text="portfolioResult.total_policies"></p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-700">Total Net Premium</h4>
+                            <p class="text-2xl font-bold">BWP <span x-text="formatNumber(portfolioResult.total_net_premium)"></span></p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-700">Total Gross Premium</h4>
+                            <p class="text-2xl font-bold">BWP <span x-text="formatNumber(portfolioResult.total_gross_premium)"></span></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Portfolio Charts -->
+                    <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-lg border border-gray-200">
+                            <h4 class="text-lg font-semibold mb-4">Product Distribution</h4>
+                            <div style="height: 300px;">
+                                <canvas id="productChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg border border-gray-200">
+                            <h4 class="text-lg font-semibold mb-4">Risk Distribution</h4>
+                            <div style="height: 300px;">
+                                <canvas id="riskChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sensitivity Tab -->
+        <div x-show="activeTab === 'sensitivity'" x-cloak>
+            <div class="bg-white rounded-lg shadow-xl p-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Sensitivity Analysis</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="font-semibold mb-3">Base Policy</h3>
+                        <div class="space-y-3">
+                            <input type="number" x-model.number="sensitivityPolicy.age" 
+                                   placeholder="Age" class="w-full px-3 py-2 border rounded-lg">
+                            <input type="number" x-model.number="sensitivityPolicy.sum_assured" 
+                                   placeholder="Coverage Amount" class="w-full px-3 py-2 border rounded-lg">
+                            <input type="number" x-model.number="sensitivityPolicy.term" 
+                                   placeholder="Term" class="w-full px-3 py-2 border rounded-lg">
+                            <input type="number" x-model.number="sensitivityPolicy.interest_rate" 
+                                   placeholder="Interest Rate %" class="w-full px-3 py-2 border rounded-lg">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold mb-3">Sensitivity Parameters</h3>
+                        <div class="space-y-3">
+                            <input type="text" x-model="sensitivityParams.interest_rates" 
+                                   placeholder="Interest Rates (comma separated)" 
+                                   class="w-full px-3 py-2 border rounded-lg">
+                            <input type="text" x-model="sensitivityParams.ages" 
+                                   placeholder="Ages (comma separated)" 
+                                   class="w-full px-3 py-2 border rounded-lg">
+                            <input type="text" x-model="sensitivityParams.coverage_amounts" 
+                                   placeholder="Coverage Amounts (comma separated)" 
+                                   class="w-full px-3 py-2 border rounded-lg">
                         </div>
                     </div>
                 </div>
                 
-                <div class="mt-4 flex space-x-4">
-                    <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Calculate Premiums</button>
-                    <button type="button" id="sensitivity-btn" class="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Sensitivity Analysis</button>
-                    <button type="button" id="comparison-btn" class="inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Compare Policies</button>
-                </div>
-                </div>
-            </form>
-            <div id="premium-result" class="mt-8 hidden">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-bold mb-2">Net Premium</h3>
-                        <p class="text-2xl font-bold text-blue-600">BWP <span id="net-premium-value"></span></p>
-                        <p class="text-sm text-gray-600 mt-1">Pure risk premium without expenses</p>
-                        <p class="text-xs font-medium text-blue-700 mt-2">💰 Paid annually</p>
-                    </div>
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h3 class="text-lg font-bold mb-2">Gross Premium</h3>
-                        <p class="text-2xl font-bold text-indigo-600">BWP <span id="gross-premium-value"></span></p>
-                        <p class="text-sm text-gray-600 mt-1">Market premium including expenses & profit</p>
-                        <p class="text-xs font-medium text-indigo-700 mt-2">💰 Paid annually</p>
-                    </div>
-                </div>
-                <div id="expense-breakdown" class="mt-4 bg-yellow-50 p-4 rounded-lg">
-                    <h4 class="font-semibold mb-2">Expense Assumptions:</h4>
-                    <div class="grid grid-cols-2 gap-2 text-sm">
-                        <div>Initial Expenses: <span id="initial-expense"></span>% of sum assured</div>
-                        <div>Renewal Expenses: <span id="renewal-expense"></span>% of gross premium</div>
-                        <div>Maintenance: BWP <span id="maintenance-expense"></span> per year</div>
-                        <div>Profit Margin: <span id="profit-margin"></span>%</div>
-                    </div>
-                </div>
-                <div id="reserve-schedule" class="mt-6 bg-blue-50 p-4 rounded-lg">
-                    <h4 class="font-semibold mb-3">Net Premium Reserve Schedule:</h4>
-                    <div class="mb-4">
-                        <canvas id="reserveChart" width="400" height="200"></canvas>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead>
-                                <tr class="border-b">
-                                    <th class="text-left py-1">Year</th>
-                                    <th class="text-right py-1">Reserve (BWP)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="reserve-table-body">
-                                <!-- Reserve schedule will be populated here -->
-                            </tbody>
-                        </table>
+                <button @click="runSensitivityAnalysis()" 
+                        class="mt-6 px-6 py-3 bg-primary text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                    Run Sensitivity Analysis
+                </button>
+                
+                <!-- Sensitivity Results -->
+                <div x-show="sensitivityResult" x-cloak class="mt-8">
+                    <h3 class="text-xl font-bold mb-4">Sensitivity Results</h3>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white p-6 rounded-lg border border-gray-200">
+                            <h4 class="text-lg font-semibold mb-4">Interest Rate Sensitivity</h4>
+                            <div style="height: 300px;">
+                                <canvas id="interestSensitivityChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="bg-white p-6 rounded-lg border border-gray-200">
+                            <h4 class="text-lg font-semibold mb-4">Age Sensitivity</h4>
+                            <div style="height: 300px;">
+                                <canvas id="ageSensitivityChart"></canvas>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <div id="reserving" class="container mx-auto p-4 hidden">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-2xl font-bold mb-4">Chain Ladder Reserving</h2>
-                <form id="chain-ladder-form">
-                    <div class="grid grid-cols-1 gap-4">
-                        <div>
-                            <label for="cl-claims-data" class="block text-sm font-medium text-gray-700">Claims Data (CSV format)</label>
-                            <textarea id="cl-claims-data" name="claims_data" rows="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g.,\n100,150,200\n120,180\n150"></textarea>
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Calculate Reserves</button>
-                    </div>
-                </form>
-                <div id="chain-ladder-result" class="mt-8 hidden">
-                    <h3 class="text-xl font-bold">Calculated Reserves</h3>
-                    <p class="mt-2 text-2xl font-bold text-indigo-600">P <span id="cl-reserves-value"></span></p>
-                </div>
-            </div>
-
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-2xl font-bold mb-4">Bornhuetter-Ferguson Reserving</h2>
-                <form id="bf-form">
-                    <div class="grid grid-cols-1 gap-4">
-                        <div>
-                            <label for="bf-claims-data" class="block text-sm font-medium text-gray-700">Claims Data (CSV format)</label>
-                            <textarea id="bf-claims-data" name="claims_data" rows="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g.,\n100,150,200\n120,180\n150"></textarea>
-                        </div>
-                        <div>
-                            <label for="expected_loss_ratio" class="block text-sm font-medium text-gray-700">Expected Loss Ratio</label>
-                            <input type="number" step="0.01" id="expected_loss_ratio" name="expected_loss_ratio" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 0.75">
-                        </div>
-                        <div>
-                            <label for="premium" class="block text-sm font-medium text-gray-700">Premium (CSV format)</label>
-                            <input type="text" id="premium" name="premium" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="e.g., 1000,1200,1500">
-                        </div>
-                    </div>
-                    <div class="mt-4">
-                        <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">Calculate Reserves</button>
-                    </div>
-                </form>
-                <div id="bf-result" class="mt-8 hidden">
-                    <h3 class="text-xl font-bold">Calculated Reserves</h3>
-                    <p class="mt-2 text-2xl font-bold text-indigo-600">P <span id="bf-reserves-value"></span></p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/pricing.js"></script>
-    <script src="js/reserving.js"></script>
-    <script>
-        function toggleProductFields() {
-            const productType = document.getElementById('product_type').value;
-            const termLabel = document.getElementById('term_label');
-            const termHelp = document.getElementById('term_help');
-            const termField = document.getElementById('term');
-            const sumAssuredLabel = document.querySelector('label[for="sum_assured"]');
-            const deferralField = document.getElementById('deferral_field');
-            
-            // Reset visibility
-            deferralField.classList.add('hidden');
-            
-            switch(productType) {
-                case 'whole_life':
-                    termLabel.textContent = 'Premium Paying Period (years)';
-                    termHelp.textContent = 'Number of years to pay premiums (coverage is for life)';
-                    sumAssuredLabel.textContent = 'Coverage Amount (BWP)';
-                    termField.required = true;
-                    break;
-                case 'immediate_annuity':
-                    termLabel.textContent = 'Not Required';
-                    termHelp.textContent = 'Annuity payments start immediately';
-                    sumAssuredLabel.textContent = 'Annual Payout (BWP)';
-                    termField.required = false;
-                    termField.value = 0;
-                    break;
-                case 'deferred_annuity':
-                    termLabel.textContent = 'Not Required';
-                    termHelp.textContent = 'Annuity payments start after deferral period';
-                    sumAssuredLabel.textContent = 'Annual Payout (BWP)';
-                    deferralField.classList.remove('hidden');
-                    termField.required = false;
-                    termField.value = 0;
-                    break;
-                default: // term_life
-                    termLabel.textContent = 'Term (years)';
-                    termHelp.textContent = 'Coverage period for term life insurance';
-                    sumAssuredLabel.textContent = 'Sum Assured (BWP)';
-                    termField.required = true;
-                    break;
-            }
-        }
-    </script>
+    
+    <!-- Alpine.js Application -->
+    <script src="js/app.js"></script>
 </body>
-</html>
 </html>

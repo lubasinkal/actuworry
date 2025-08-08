@@ -1,19 +1,13 @@
 package main
 
 import (
-	"actuworry/backend/actuarial"
-	"encoding/json"
+	"actuworry/backend/handlers"
+	"actuworry/backend/routes"
+	"actuworry/backend/services"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 )
-
-var loadedMortalityTables map[string]actuarial.MortalityTable
-
-type ErrorMessage struct {
-	Error string `json:"error"`
-}
 
 func sendErrorResponse(responseWriter http.ResponseWriter, errorMessage string, statusCode int) {
 	responseWriter.Header().Set("Content-Type", "application/json")
