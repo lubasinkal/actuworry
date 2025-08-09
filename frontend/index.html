@@ -296,16 +296,54 @@
                         These are your annual premium amounts. You'll pay the <span class="font-medium">Gross Premium</span> each year to keep your policy active.
                     </p>
                     <p class="text-sm text-gray-600 mb-4" x-show="policy.product_type === 'immediate_annuity'">
-                        For an immediate annuity, the <span class="font-medium">Net Premium</span> represents the annual income you'll receive, 
-                        and the <span class="font-medium">Gross Premium</span> includes adjustments for expenses and profit margins.
+                        This immediate annuity requires a single lump-sum payment, and you'll receive annual income payments starting immediately.
                     </p>
                     <p class="text-sm text-gray-600 mb-4" x-show="policy.product_type === 'deferred_annuity'">
-                        For a deferred annuity, these are the annual premiums during the accumulation phase. 
-                        After the deferral period, you'll receive regular income payments.
+                        This deferred annuity requires premium payments during the accumulation phase. 
+                        After the deferral period, you'll receive regular annual income payments.
                     </p>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Premium Cards -->
+                    <!-- Annuity-specific results -->
+                    <div x-show="policy.product_type === 'immediate_annuity' || policy.product_type === 'deferred_annuity'" class="mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Annual Income Payment -->
+                            <div class="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg">
+                                <h4 class="text-lg font-semibold text-green-900">Annual Income Payment</h4>
+                                <p class="text-3xl font-bold text-green-700 mt-2">
+                                    BWP <span x-text="formatNumber(result.annual_payout || policy.sum_assured)"></span>
+                                </p>
+                                <p class="text-sm text-green-600 mt-1">Amount you'll receive each year</p>
+                                <p class="text-xs text-green-500 mt-2" x-show="policy.product_type === 'immediate_annuity'">
+                                    💵 Payments start immediately
+                                </p>
+                                <p class="text-xs text-green-500 mt-2" x-show="policy.product_type === 'deferred_annuity'">
+                                    ⏱️ Payments start after <span x-text="policy.deferral_period || 5"></span> years
+                                </p>
+                            </div>
+                            
+                            <!-- Total Cost -->
+                            <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-lg">
+                                <h4 class="text-lg font-semibold text-indigo-900">
+                                    <span x-text="policy.product_type === 'immediate_annuity' ? 'Single Premium Required' : 'Total Premium Cost'"></span>
+                                </h4>
+                                <p class="text-3xl font-bold text-indigo-700 mt-2">
+                                    BWP <span x-text="formatNumber(result.total_premium_cost || result.gross_premium)"></span>
+                                </p>
+                                <p class="text-sm text-indigo-600 mt-1" x-show="policy.product_type === 'immediate_annuity'">
+                                    One-time payment to purchase annuity
+                                </p>
+                                <p class="text-sm text-indigo-600 mt-1" x-show="policy.product_type === 'deferred_annuity'">
+                                    Total cost during accumulation phase
+                                </p>
+                                <p class="text-xs text-indigo-500 mt-2">
+                                    📊 Includes all fees and expenses
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Life Insurance Premium Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-show="policy.product_type === 'term_life' || policy.product_type === 'whole_life'">
                         <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg">
                             <h4 class="text-lg font-semibold text-blue-900">Net Premium</h4>
                             <p class="text-3xl font-bold text-blue-700 mt-2">
