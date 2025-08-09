@@ -165,22 +165,22 @@
                         <h4 class="font-semibold text-blue-900 mb-2">💰 Immediate Annuity</h4>
                         <p class="text-sm text-blue-800">
                             An immediate annuity provides regular income payments starting right away. 
-                            You pay a single lump sum (Coverage Amount) and receive annual payments for the specified term.
+                            Specify your desired annual income, and the calculator will determine the single lump sum required to purchase this annuity.
                             Perfect for retirement income or guaranteed cash flow.
                         </p>
                         <p class="text-xs text-blue-700 mt-2">
-                            <strong>Example:</strong> Pay BWP 100,000 today to receive annual income for the next 10 years.
+                            <strong>Example:</strong> To receive BWP 10,000 annually for the next 10 years, you might need to pay BWP 85,000 today (depending on age and rates).
                         </p>
                     </div>
                     <div x-show="policy.product_type === 'deferred_annuity'">
                         <h4 class="font-semibold text-blue-900 mb-2">⏳ Deferred Annuity</h4>
                         <p class="text-sm text-blue-800">
                             A deferred annuity provides regular income payments starting after a waiting period. 
-                            You pay premiums now, and after the deferral period, you receive annual payments for the specified term.
+                            Specify your desired annual income, and the calculator will determine the premiums needed during the accumulation phase.
                             Ideal for retirement planning when you want income to start later.
                         </p>
                         <p class="text-xs text-blue-700 mt-2">
-                            <strong>Example:</strong> Pay premiums now, wait 5 years, then receive annual income for 10 years.
+                            <strong>Example:</strong> To receive BWP 10,000 annually after a 5-year deferral, you'll need to pay calculated premiums during the accumulation phase.
                         </p>
                     </div>
                 </div>
@@ -217,16 +217,16 @@
                         
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                <span x-text="(policy.product_type === 'immediate_annuity' || policy.product_type === 'deferred_annuity') ? 'Purchase Price / Fund Value (BWP)' : 'Coverage Amount (BWP)'"></span>
+                                <span x-text="(policy.product_type === 'immediate_annuity' || policy.product_type === 'deferred_annuity') ? 'Annual Income Desired (BWP)' : 'Coverage Amount (BWP)'"></span>
                             </label>
                             <input type="number" x-model.number="policy.sum_assured" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                    min="10000" step="1000" required>
                             <p class="text-xs text-gray-500 mt-1" x-show="policy.product_type === 'immediate_annuity'">
-                                Single premium amount to purchase the annuity
+                                Annual payment amount you want to receive
                             </p>
                             <p class="text-xs text-gray-500 mt-1" x-show="policy.product_type === 'deferred_annuity'">
-                                Target fund value at start of payout phase
+                                Annual payment amount you want to receive after deferral
                             </p>
                         </div>
                         
