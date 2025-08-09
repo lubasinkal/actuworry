@@ -1,19 +1,24 @@
-# 🏗️ Actuworry - Refactored Architecture
+# 🏗️ Actuworry - System Architecture
 
 ## Overview
-The codebase has been refactored to follow Go best practices with a modular, maintainable structure and an enhanced frontend using Alpine.js and Chart.js.
+Actuworry is a production-ready actuarial platform built with Go backend and vanilla JavaScript frontend. The system follows Go best practices with a modular, maintainable structure and is deployed on Render.
+
+🌐 **Live URL:** https://actuworry.onrender.com
 
 ## 🗂️ Project Structure
 
 ```
 actuworry/
 ├── backend/
-│   ├── cmd/
-│   │   └── server/
-│   │       └── main.go         # Application entry point
 │   ├── actuarial/
 │   │   ├── core.go            # Core actuarial calculations
 │   │   └── core_test.go       # Actuarial tests
+│   ├── cmd/
+│   │   └── server/
+│   │       └── main.go         # Server entry point
+│   ├── data/
+│   │   ├── male.csv           # Male mortality table
+│   │   └── female.csv         # Female mortality table
 │   ├── handlers/
 │   │   └── actuarial_handlers.go  # HTTP request handlers
 │   ├── middleware/
@@ -24,18 +29,26 @@ actuworry/
 │   │   └── routes.go          # Route configuration
 │   ├── services/
 │   │   └── actuarial_service.go   # Business logic layer
-│   └── data/
-│       ├── male.csv           # Male mortality table
-│       └── female.csv         # Female mortality table
+│   ├── scripts/              # Utility scripts
+│   │   └── run.sh            # Development run script
+│   ├── tests/                # Test files
+│   │   ├── test_api.sh       # API test scripts
+│   │   └── *.json            # Test data files
+│   └── utils/                # Helper functions
 │
 ├── frontend/
-│   ├── index_new.html         # Enhanced UI with Alpine.js
-│   ├── js/
-│   │   └── app.js            # Alpine.js application logic
-│   └── css/                  # Custom styles (if needed)
+│   ├── index.html            # Main application UI
+│   ├── components/           # UI components
+│   ├── css/                  # Stylesheets
+│   └── js/                   # JavaScript modules
 │
-└── tests/
-    └── *.json                # Test data files
+├── docs/
+│   └── ARCHITECTURE.md       # This file
+├── main.go                   # Root entry point for deployment
+├── go.mod                    # Go module definition
+├── Makefile                  # Build automation
+├── render.yaml               # Render deployment config
+└── README.md                 # Project documentation
 ```
 
 ## 🔧 Backend Architecture
@@ -99,25 +112,66 @@ All endpoints now use `/api` prefix for clarity:
 
 ### Development Mode
 ```bash
-# From project root
-./run.sh
+# Using Makefile
+make run
 
-# Or manually
+# Or directly with Go
+go run main.go
+
+# Or using the backend server directly
 go run backend/cmd/server/main.go
 ```
 
 ### Production Build
 ```bash
-# Build the binary
-go build -o actuworry backend/cmd/server/main.go
+# Build using Makefile
+make build
+
+# Or build manually
+go build -tags netgo -ldflags '-s -w' -o app
 
 # Run the binary
-./actuworry
+./app
 ```
 
 ### Environment Variables
 ```bash
 PORT=8080  # Server port (default: 8080)
+```
+
+## 🌐 Deployment
+
+### Render Deployment
+The application is deployed on Render using the `render.yaml` configuration:
+
+```yaml
+services:
+  - type: web
+    name: actuworry
+    runtime: go
+    buildCommand: go build -tags netgo -ldflags '-s -w' -o app
+    startCommand: ./app
+    envVars:
+      - key: PORT
+        value: 10000
+```
+
+### Deployment Process
+1. Push changes to GitHub main branch
+2. Render automatically detects changes
+3. Builds the Go application
+4. Deploys to production
+5. Available at https://actuworry.onrender.com
+
+### Manual Deployment
+```bash
+# Deploy using Makefile
+make deploy
+
+# Or manually
+git add .
+git commit -m "Deploy updates"
+git push origin main
 ```
 
 ## 📊 Key Improvements

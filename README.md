@@ -1,6 +1,8 @@
-# 🇧🇼 Actuworry - Life Insurance Actuarial Tool
+# 🇧🇼 Actuworry - Life Insurance Actuarial Platform
 
 > A locally-built life insurance pricing, valuation and reserving tool for the Botswana market
+
+🌐 **Live Demo:** [https://actuworry.onrender.com](https://actuworry.onrender.com)
 
 Actuworry is a working prototype of an in-house actuarial system that handles core life insurance calculations - traditionally outsourced to foreign providers. Built to demonstrate that local actuarial technology is feasible, affordable, and aligned with market needs.
 
@@ -34,12 +36,14 @@ Build a **transparent and customizable actuarial engine** that:
 
 ### Frontend (HTML/JavaScript)
 - 📝 **Life insurance pricing form** with product type selection
-- 🏠 **Whole life insurance** support with premium paying period
-- 📊 **Interactive charts** showing reserve schedules
-- 💰 **Premium results display** (net vs gross)
+- 🏠 **Product types:** Term Life, Whole Life, Immediate/Deferred Annuity
+- 📊 **Interactive charts** showing reserve schedules and premium breakdown
+- 💰 **Premium results display** (net vs gross with explanations)
 - 📈 **Visual reserve projections** with Chart.js integration
-- 💰 **Expense assumption breakdown**
+- 💼 **Portfolio Analysis** - Analyze multiple policies at once
+- 🔬 **Sensitivity Analysis** - Test how changes affect premiums
 - 📋 **Reserve schedule table** showing year-by-year values
+- 🚬 **Risk factors:** Smoker status, health ratings
 - 📱 **Responsive design** using Tailwind CSS
 
 ---
@@ -60,9 +64,11 @@ Build a **transparent and customizable actuarial engine** that:
 
 2. **Start the server:**
    ```bash
-   ./run.sh
+   make run
    # or manually:
-   go run backend/main.go
+   go run main.go
+   # or build and run:
+   make build && ./app
    ```
 
 3. **Open your browser:**
@@ -121,9 +127,41 @@ Build a **transparent and customizable actuarial engine** that:
 - `GET /health` - Health check endpoint
 - `GET /` - Serve frontend application
 
-### New Product Types
+### Product Types
 - **Term Life Insurance** - Coverage for specified term only
 - **Whole Life Insurance** - Lifetime coverage with flexible premium paying periods
+- **Immediate Annuity** - Regular payments starting immediately
+- **Deferred Annuity** - Regular payments starting after deferral period
+
+---
+
+## 📁 Project Structure
+
+```
+actuworry/
+├── backend/              # Go backend server
+│   ├── actuarial/       # Core actuarial calculations
+│   ├── cmd/server/      # Server entry point
+│   ├── data/            # Mortality tables (CSV)
+│   ├── handlers/        # HTTP request handlers
+│   ├── middleware/      # CORS and other middleware
+│   ├── models/          # Data models
+│   ├── routes/          # API route definitions
+│   ├── services/        # Business logic
+│   ├── scripts/         # Utility scripts
+│   ├── tests/           # Test files and scripts
+│   └── utils/           # Helper functions
+├── frontend/            # Web interface
+│   ├── components/      # UI components
+│   ├── css/            # Stylesheets
+│   ├── js/             # JavaScript modules
+│   └── index.html      # Main application
+├── docs/               # Documentation
+├── main.go             # Application entry point
+├── go.mod              # Go dependencies
+├── Makefile            # Build commands
+└── render.yaml         # Deployment configuration
+```
 
 ---
 
@@ -174,12 +212,17 @@ func DefaultExpenseStructure() ExpenseStructure {
 
 ## 🚧 Future Enhancements
 
-### Short Term
-- [x] **Product Types:** Whole life insurance ✅
+### Completed Features
+- [x] **Product Types:** Term Life, Whole Life, Annuities ✅
 - [x] **Batch Processing:** Multiple policy calculations ✅
 - [x] **Interactive Charts:** Reserve visualization ✅
-- [ ] **Product Types:** Endowments, annuities
-- [ ] **Underwriting:** Risk factors, medical loadings
+- [x] **Portfolio Analysis:** Analyze multiple policies ✅
+- [x] **Sensitivity Analysis:** Test parameter changes ✅
+- [x] **Risk Factors:** Smoker status, health ratings ✅
+- [x] **Live Deployment:** Hosted on Render ✅
+
+### Short Term Goals
+- [ ] **Product Types:** Endowments
 - [ ] **Currency:** Multi-currency support
 - [ ] **Export:** PDF quotes, Excel reserve schedules
 
