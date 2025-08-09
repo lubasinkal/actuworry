@@ -367,8 +367,8 @@
                         </div>
                     </div>
                     
-                    <!-- Charts Section -->
-                    <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Charts Section (only for life insurance) -->
+                    <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6" x-show="policy.product_type === 'term_life' || policy.product_type === 'whole_life'">
                         <div class="bg-white p-6 rounded-lg border border-gray-200">
                             <h4 class="text-lg font-semibold mb-2">Reserve Schedule</h4>
                             <p class="text-xs text-gray-500 mb-3">
