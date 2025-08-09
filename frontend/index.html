@@ -158,6 +158,33 @@
                     and <span class="font-medium">gross premium</span> (total cost including expenses and profit).
                 </p>
                 
+                <!-- Product Type Explanation -->
+                <div x-show="policy.product_type === 'immediate_annuity' || policy.product_type === 'deferred_annuity'" 
+                     class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div x-show="policy.product_type === 'immediate_annuity'">
+                        <h4 class="font-semibold text-blue-900 mb-2">💰 Immediate Annuity</h4>
+                        <p class="text-sm text-blue-800">
+                            An immediate annuity provides regular income payments starting right away. 
+                            You pay a single lump sum (Coverage Amount) and receive annual payments for the specified term.
+                            Perfect for retirement income or guaranteed cash flow.
+                        </p>
+                        <p class="text-xs text-blue-700 mt-2">
+                            <strong>Example:</strong> Pay BWP 100,000 today to receive annual income for the next 10 years.
+                        </p>
+                    </div>
+                    <div x-show="policy.product_type === 'deferred_annuity'">
+                        <h4 class="font-semibold text-blue-900 mb-2">⏳ Deferred Annuity</h4>
+                        <p class="text-sm text-blue-800">
+                            A deferred annuity provides regular income payments starting after a waiting period. 
+                            You pay premiums now, and after the deferral period, you receive annual payments for the specified term.
+                            Ideal for retirement planning when you want income to start later.
+                        </p>
+                        <p class="text-xs text-blue-700 mt-2">
+                            <strong>Example:</strong> Pay premiums now, wait 5 years, then receive annual income for 10 years.
+                        </p>
+                    </div>
+                </div>
+                
                 <form @submit.prevent="calculatePremium()">
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <!-- Basic Information -->
@@ -189,10 +216,18 @@
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Coverage Amount (BWP)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <span x-text="(policy.product_type === 'immediate_annuity' || policy.product_type === 'deferred_annuity') ? 'Purchase Price / Fund Value (BWP)' : 'Coverage Amount (BWP)'"></span>
+                            </label>
                             <input type="number" x-model.number="policy.sum_assured" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                                    min="10000" step="1000" required>
+                            <p class="text-xs text-gray-500 mt-1" x-show="policy.product_type === 'immediate_annuity'">
+                                Single premium amount to purchase the annuity
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1" x-show="policy.product_type === 'deferred_annuity'">
+                                Target fund value at start of payout phase
+                            </p>
                         </div>
                         
                         <div>
@@ -257,8 +292,16 @@
                 <!-- Results Section -->
                 <div x-show="result" x-cloak class="mt-8">
                     <h3 class="text-xl font-bold mb-2 text-gray-800">Calculation Results</h3>
-                    <p class="text-sm text-gray-600 mb-4">
+                    <p class="text-sm text-gray-600 mb-4" x-show="policy.product_type === 'term_life' || policy.product_type === 'whole_life'">
                         These are your annual premium amounts. You'll pay the <span class="font-medium">Gross Premium</span> each year to keep your policy active.
+                    </p>
+                    <p class="text-sm text-gray-600 mb-4" x-show="policy.product_type === 'immediate_annuity'">
+                        For an immediate annuity, the <span class="font-medium">Net Premium</span> represents the annual income you'll receive, 
+                        and the <span class="font-medium">Gross Premium</span> includes adjustments for expenses and profit margins.
+                    </p>
+                    <p class="text-sm text-gray-600 mb-4" x-show="policy.product_type === 'deferred_annuity'">
+                        For a deferred annuity, these are the annual premiums during the accumulation phase. 
+                        After the deferral period, you'll receive regular income payments.
                     </p>
                     
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
