@@ -9,10 +9,10 @@ help:
 	@echo "  make deploy  - Deploy to Render"
 
 build:
-	go build -tags netgo -ldflags '-s -w' -o app ./backend/cmd/server
+	go build -tags netgo -ldflags '-s -w' -o app
 
 run:
-	go run ./backend/cmd/server
+	go run main.go
 
 test:
 	go test ./backend/...
