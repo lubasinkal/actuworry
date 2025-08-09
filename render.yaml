@@ -4,4 +4,5 @@ services:
     runtime: go
     buildCommand: cd backend && go build -tags netgo -ldflags '-s -w' -o ../app
     startCommand: ./app
+    plan: free
   
