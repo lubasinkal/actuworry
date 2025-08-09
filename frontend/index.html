@@ -390,6 +390,70 @@
                         </div>
                     </div>
                     
+                    <!-- Calculation Assumptions for All Products -->
+                    <div x-show="result" class="mt-6 bg-gray-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-gray-900 mb-3">📊 Calculation Assumptions</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Your Age:</span>
+                                    <span class="font-medium" x-text="policy.age + ' years'"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Gender:</span>
+                                    <span class="font-medium capitalize" x-text="policy.table_name"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600" x-text="(policy.product_type === 'immediate_annuity' || policy.product_type === 'deferred_annuity') ? 'Payment Term:' : (policy.product_type === 'whole_life' ? 'Premium Paying Period:' : 'Policy Term:')"></span>
+                                    <span class="font-medium" x-text="policy.term + ' years'"></span>
+                                </div>
+                                <div class="flex justify-between" x-show="policy.product_type === 'deferred_annuity'">
+                                    <span class="text-gray-600">Deferral Period:</span>
+                                    <span class="font-medium" x-text="(policy.deferral_period || 5) + ' years'"></span>
+                                </div>
+                                <div class="flex justify-between" x-show="policy.product_type === 'term_life' || policy.product_type === 'whole_life'">
+                                    <span class="text-gray-600">Coverage Amount:</span>
+                                    <span class="font-medium" x-text="'BWP ' + formatNumber(policy.sum_assured)"></span>
+                                </div>
+                                <div class="flex justify-between" x-show="policy.product_type === 'immediate_annuity' || policy.product_type === 'deferred_annuity'">
+                                    <span class="text-gray-600">Annual Income:</span>
+                                    <span class="font-medium" x-text="'BWP ' + formatNumber(policy.sum_assured)"></span>
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Interest Rate:</span>
+                                    <span class="font-medium" x-text="policy.interest_rate + '%'"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Health Status:</span>
+                                    <span class="font-medium capitalize" x-text="policy.health_rating || 'Standard'"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Smoker Status:</span>
+                                    <span class="font-medium" x-text="policy.smoker_status ? (policy.smoker_status === 'smoker' ? 'Smoker' : 'Non-smoker') : 'Unknown'"></span>
+                                </div>
+                                <div class="flex justify-between" x-show="policy.product_type === 'immediate_annuity' || policy.product_type === 'deferred_annuity'">
+                                    <span class="text-gray-600">Expense Loading:</span>
+                                    <span class="font-medium">10%</span>
+                                </div>
+                                <div class="flex justify-between" x-show="policy.product_type === 'whole_life'">
+                                    <span class="text-gray-600">Coverage Type:</span>
+                                    <span class="font-medium">Lifetime</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <p class="text-xs text-gray-500">
+                                <span class="font-medium">Note:</span> 
+                                <span x-show="policy.product_type === 'term_life'">Calculations use mortality tables based on your gender and age, adjusted for health and smoking status. Coverage provides death benefit protection for the specified term.</span>
+                                <span x-show="policy.product_type === 'whole_life'">Calculations use mortality tables based on your gender and age, adjusted for health and smoking status. Coverage provides lifetime death benefit protection with premiums paid over the specified period.</span>
+                                <span x-show="policy.product_type === 'immediate_annuity'">Calculations use mortality tables based on your gender and age, adjusted for health and smoking status. Payments begin immediately and continue for the specified term.</span>
+                                <span x-show="policy.product_type === 'deferred_annuity'">Calculations use mortality tables based on your gender and age, adjusted for health and smoking status. Payments begin after the deferral period and continue for the specified term.</span>
+                            </p>
+                        </div>
+                    </div>
+                    
                     <!-- Expense Details -->
                     <div x-show="result.expenses" class="mt-6 bg-yellow-50 p-4 rounded-lg">
                         <h4 class="font-semibold text-yellow-900 mb-2">Expense Structure</h4>
