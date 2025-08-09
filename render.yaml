@@ -1,9 +1,7 @@
 services:
   - type: web
-    name: actuworry-backend
+    name: actuworry
     runtime: go
     buildCommand: cd backend && go build -tags netgo -ldflags '-s -w' -o ../app
     startCommand: ./app
-    envVars:
-      - key: PORT
-        value: 10000
+  
