@@ -3,6 +3,7 @@ function actuarialApp() {
     return {
         // State
         activeTab: 'calculator',
+        mobileMenuOpen: false,  // Add mobile menu state
         loading: false,
         result: null,
         portfolioResult: null,
