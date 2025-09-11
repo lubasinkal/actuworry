@@ -7,7 +7,8 @@ import (
 	"strings"
 )
 
-// ActuarialService provides actuarial calculation services
+// ActuarialService wraps the actuarial calculator and loaded mortality tables
+// It acts as a simple API for the rest of the app
 type ActuarialService struct {
 	mortalityTables map[string]actuarial.MortalityTable
 }
@@ -19,7 +20,7 @@ func NewActuarialService() *ActuarialService {
 	}
 }
 
-// LoadMortalityTable loads a mortality table from file
+// LoadMortalityTable loads a mortality table by a friendly name (e.g., "male")
 func (s *ActuarialService) LoadMortalityTable(name, filePath string) error {
 	table, err := actuarial.LoadMortalityTable(filePath)
 	if err != nil {
@@ -29,7 +30,7 @@ func (s *ActuarialService) LoadMortalityTable(name, filePath string) error {
 	return nil
 }
 
-// GetAvailableTables returns list of loaded mortality tables
+// GetAvailableTables returns the names of all loaded tables
 func (s *ActuarialService) GetAvailableTables() []string {
 	tables := make([]string, 0, len(s.mortalityTables))
 	for name := range s.mortalityTables {
@@ -38,13 +39,13 @@ func (s *ActuarialService) GetAvailableTables() []string {
 	return tables
 }
 
-// GetMortalityTable retrieves a mortality table by name
+// GetMortalityTable gets a table by gender/name, defaults to "male" if empty
 func (s *ActuarialService) GetMortalityTable(gender string) (actuarial.MortalityTable, error) {
-	tableName := strings.ToLower(gender)
+	tableName := strings.ToLower(strings.TrimSpace(gender))
 	if tableName == "" {
 		tableName = "male"
 	}
-	
+
 	table, exists := s.mortalityTables[tableName]
 	if !exists {
 		return nil, fmt.Errorf("mortality table '%s' not found", tableName)
@@ -54,142 +55,119 @@ func (s *ActuarialService) GetMortalityTable(gender string) (actuarial.Mortality
 
 // CalculatePremium calculates premiums for a single policy
 func (s *ActuarialService) CalculatePremium(policy *models.Policy) (models.PremiumCalculation, error) {
-	// Validate policy
+	// 1) Validate request
 	if err := s.validatePolicy(policy); err != nil {
 		return models.PremiumCalculation{}, err
 	}
-	
-	// Get mortality table
+
+	// 2) Load mortality data
 	mortalityTable, err := s.GetMortalityTable(policy.Gender)
 	if err != nil {
 		return models.PremiumCalculation{}, err
 	}
-	
-	// Convert to actuarial.Policy
+
+	// 3) Convert to internal actuarial model
 	actuarialPolicy := s.convertToActuarialPolicy(policy)
-	
-	// Calculate premium
-	result := actuarial.CalculateFullPremium(&actuarialPolicy, mortalityTable)
-	
-	// Convert back to models.PremiumCalculation
-	return s.convertToPremiumCalculation(result), nil
+
+	// 4) Do the calculation
+	calc := actuarial.CalculateFullPremium(&actuarialPolicy, mortalityTable)
+
+	// 5) Convert result to API model
+	return s.convertToPremiumCalculation(calc), nil
 }
 
-// CalculateBatch processes multiple policies
+// CalculateBatch processes multiple policies and returns a summary
 func (s *ActuarialService) CalculateBatch(policies []models.Policy) (models.BatchCalculationResponse, error) {
 	if len(policies) == 0 {
 		return models.BatchCalculationResponse{}, fmt.Errorf("no policies provided")
 	}
-	
 	if len(policies) > 100 {
 		return models.BatchCalculationResponse{}, fmt.Errorf("too many policies (max 100)")
 	}
-	
+
 	results := make([]models.PremiumCalculation, 0, len(policies))
-	totalNetPremium := 0.0
-	totalGrossPremium := 0.0
-	productCounts := make(map[string]int)
-	
-	for i, policy := range policies {
-		result, err := s.CalculatePremium(&policy)
+	totalNet := 0.0
+	totalGross := 0.0
+	perProductCount := make(map[string]int)
+
+	for i, p := range policies {
+		res, err := s.CalculatePremium(&p)
 		if err != nil {
-			return models.BatchCalculationResponse{}, 
-				fmt.Errorf("failed to calculate policy %d: %w", i+1, err)
+			return models.BatchCalculationResponse{}, fmt.Errorf("failed to calculate policy %d: %w", i+1, err)
 		}
-		
-		results = append(results, result)
-		totalNetPremium += result.NetPremium
-		totalGrossPremium += result.GrossPremium
-		productCounts[result.ProductType]++
+		results = append(results, res)
+		totalNet += res.NetPremium
+		totalGross += res.GrossPremium
+		perProductCount[res.ProductType]++
 	}
-	
+
 	summary := map[string]interface{}{
 		"total_policies":        len(results),
-		"total_net_premium":     totalNetPremium,
-		"total_gross_premium":   totalGrossPremium,
-		"average_net_premium":   totalNetPremium / float64(len(results)),
-		"average_gross_premium": totalGrossPremium / float64(len(results)),
-		"product_type_counts":   productCounts,
+		"total_net_premium":     totalNet,
+		"total_gross_premium":   totalGross,
+		"average_net_premium":   totalNet / float64(len(results)),
+		"average_gross_premium": totalGross / float64(len(results)),
+		"product_type_counts":   perProductCount,
 	}
-	
-	return models.BatchCalculationResponse{
-		Results: results,
-		Summary: summary,
-	}, nil
+
+	return models.BatchCalculationResponse{Results: results, Summary: summary}, nil
 }
 
-// SensitivityAnalysis performs sensitivity analysis on a policy
+// SensitivityAnalysis runs the base policy and then tweaks inputs to see impact
 func (s *ActuarialService) SensitivityAnalysis(req models.SensitivityAnalysisRequest) (models.SensitivityAnalysisResponse, error) {
-	// Calculate base result
-	baseResult, err := s.CalculatePremium(&req.BasePolicy)
+	base, err := s.CalculatePremium(&req.BasePolicy)
 	if err != nil {
-		return models.SensitivityAnalysisResponse{}, 
-			fmt.Errorf("failed to calculate base policy: %w", err)
+		return models.SensitivityAnalysisResponse{}, fmt.Errorf("failed to calculate base policy: %w", err)
 	}
-	
-	analysis := make(map[string][]models.SensitivityResult)
-	
+
+	analysis := map[string][]models.SensitivityResult{}
+
 	// Interest rate sensitivity
 	if len(req.InterestRates) > 0 {
-		interestResults := make([]models.SensitivityResult, 0, len(req.InterestRates))
+		var out []models.SensitivityResult
 		for _, rate := range req.InterestRates {
-			testPolicy := req.BasePolicy
-			testPolicy.InterestRate = rate
-			result, err := s.CalculatePremium(&testPolicy)
+			tmp := req.BasePolicy
+			tmp.InterestRate = rate
+			res, err := s.CalculatePremium(&tmp)
 			if err != nil {
 				continue
 			}
-			interestResults = append(interestResults, models.SensitivityResult{
-				Parameter: "interest_rate",
-				Value:     rate,
-				Result:    result,
-			})
+			out = append(out, models.SensitivityResult{Parameter: "interest_rate", Value: rate, Result: res})
 		}
-		analysis["interest_rate"] = interestResults
+		analysis["interest_rate"] = out
 	}
-	
+
 	// Age sensitivity
 	if len(req.Ages) > 0 {
-		ageResults := make([]models.SensitivityResult, 0, len(req.Ages))
+		var out []models.SensitivityResult
 		for _, age := range req.Ages {
-			testPolicy := req.BasePolicy
-			testPolicy.Age = age
-			result, err := s.CalculatePremium(&testPolicy)
+			tmp := req.BasePolicy
+			tmp.Age = age
+			res, err := s.CalculatePremium(&tmp)
 			if err != nil {
 				continue
 			}
-			ageResults = append(ageResults, models.SensitivityResult{
-				Parameter: "age",
-				Value:     float64(age),
-				Result:    result,
-			})
+			out = append(out, models.SensitivityResult{Parameter: "age", Value: float64(age), Result: res})
 		}
-		analysis["age"] = ageResults
+		analysis["age"] = out
 	}
-	
+
 	// Coverage amount sensitivity
 	if len(req.CoverageAmounts) > 0 {
-		coverageResults := make([]models.SensitivityResult, 0, len(req.CoverageAmounts))
-		for _, coverage := range req.CoverageAmounts {
-			testPolicy := req.BasePolicy
-			testPolicy.CoverageAmount = coverage
-			result, err := s.CalculatePremium(&testPolicy)
+		var out []models.SensitivityResult
+		for _, amount := range req.CoverageAmounts {
+			tmp := req.BasePolicy
+			tmp.CoverageAmount = amount
+			res, err := s.CalculatePremium(&tmp)
 			if err != nil {
 				continue
 			}
-			coverageResults = append(coverageResults, models.SensitivityResult{
-				Parameter: "coverage_amount",
-				Value:     coverage,
-				Result:    result,
-			})
+			out = append(out, models.SensitivityResult{Parameter: "coverage_amount", Value: amount, Result: res})
 		}
-		analysis["coverage_amount"] = coverageResults
+		analysis["coverage_amount"] = out
 	}
-	
-	return models.SensitivityAnalysisResponse{
-		BaseResult: baseResult,
-		Analysis:   analysis,
-	}, nil
+
+	return models.SensitivityAnalysisResponse{BaseResult: base, Analysis: analysis}, nil
 }
 
 // PortfolioAnalysis analyzes a portfolio of policies
@@ -197,7 +175,7 @@ func (s *ActuarialService) PortfolioAnalysis(policies []models.Policy) (models.P
 	if len(policies) == 0 {
 		return models.PortfolioMetrics{}, fmt.Errorf("no policies provided")
 	}
-	
+
 	totalAge := 0
 	totalCoverage := 0.0
 	totalNetPremium := 0.0
@@ -205,14 +183,14 @@ func (s *ActuarialService) PortfolioAnalysis(policies []models.Policy) (models.P
 	productDist := make(map[string]int)
 	genderDist := make(map[string]int)
 	riskDist := make(map[string]int)
-	
+
 	validPolicies := 0
 	for _, policy := range policies {
 		result, err := s.CalculatePremium(&policy)
 		if err != nil {
 			continue
 		}
-		
+
 		validPolicies++
 		totalAge += policy.Age
 		totalCoverage += policy.CoverageAmount
@@ -220,7 +198,7 @@ func (s *ActuarialService) PortfolioAnalysis(policies []models.Policy) (models.P
 		totalGrossPremium += result.GrossPremium
 		productDist[result.ProductType]++
 		genderDist[policy.Gender]++
-		
+
 		// Risk categorization
 		if policy.SmokerStatus == "smoker" || policy.HealthRating == "substandard" {
 			riskDist["high_risk"]++
@@ -230,26 +208,26 @@ func (s *ActuarialService) PortfolioAnalysis(policies []models.Policy) (models.P
 			riskDist["standard_risk"]++
 		}
 	}
-	
+
 	if validPolicies == 0 {
 		return models.PortfolioMetrics{}, fmt.Errorf("no valid policies found")
 	}
-	
+
 	// Calculate profitability metrics
 	totalExpectedPayout := totalCoverage * 0.02
 	expectedProfit := totalGrossPremium - totalNetPremium
 	profitMargin := expectedProfit / totalGrossPremium
 	lossRatio := totalExpectedPayout / totalGrossPremium
-	
+
 	profitabilityMetrics := map[string]float64{
-		"expected_profit":    expectedProfit,
-		"profit_margin":      profitMargin,
-		"loss_ratio":         lossRatio,
-		"expense_ratio":      (totalGrossPremium - totalNetPremium) / totalGrossPremium,
-		"combined_ratio":     lossRatio + ((totalGrossPremium - totalNetPremium) / totalGrossPremium),
-		"return_on_premium":  expectedProfit / totalNetPremium,
+		"expected_profit":   expectedProfit,
+		"profit_margin":     profitMargin,
+		"loss_ratio":        lossRatio,
+		"expense_ratio":     (totalGrossPremium - totalNetPremium) / totalGrossPremium,
+		"combined_ratio":    lossRatio + ((totalGrossPremium - totalNetPremium) / totalGrossPremium),
+		"return_on_premium": expectedProfit / totalNetPremium,
 	}
-	
+
 	return models.PortfolioMetrics{
 		TotalPolicies:        validPolicies,
 		TotalNetPremium:      totalNetPremium,
