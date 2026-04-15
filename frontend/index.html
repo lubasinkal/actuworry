@@ -3,528 +3,510 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ACTUWORRY // Actuarial Engine</title>
+    <title>Actuworry | Actuarial Platform</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --space-black: #000000;
-            --spectral-white: #f0f0fa;
-            --ghost-surface: rgba(240, 240, 250, 0.1);
-            --ghost-border: rgba(240, 240, 250, 0.35);
-            --dark-overlay: rgba(0, 0, 0, 0.5);
-            --accent-cyan: #00f0ff;
-            --accent-magenta: #ff00aa;
-        }
-        
-        * { box-sizing: border-box; }
-        
-        body {
-            background: var(--space-black);
-            color: var(--spectral-white);
-            font-family: 'Share Tech Mono', monospace;
-        }
-        
-        .display-font {
-            font-family: 'Orbitron', sans-serif;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-        
-        .ghost-btn {
-            background: var(--ghost-surface);
-            border: 1px solid var(--ghost-border);
-            color: var(--spectral-white);
-            padding: 18px 32px;
-            border-radius: 32px;
-            transition: all 0.3s ease;
-        }
-        
-        .ghost-btn:hover {
-            background: rgba(240, 240, 250, 0.2);
-            border-color: var(--spectral-white);
-            box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
-        }
-        
-        .input-dark {
-            background: rgba(20, 20, 30, 0.8);
-            border: 1px solid rgba(100, 100, 120, 0.3);
-            color: var(--spectral-white);
-            padding: 14px 18px;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-        }
-        
-        .input-dark:focus {
-            outline: none;
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
-        }
-        
-        .section-film {
-            min-height: 100vh;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .gradient-overlay {
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
-        }
-        
-        .neon-text {
-            text-shadow: 0 0 10px var(--accent-cyan), 0 0 20px var(--accent-cyan);
-        }
-        
-        .neon-border {
-            border: 1px solid var(--accent-cyan);
-            box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.1);
-        }
-        
-        .data-panel {
-            background: rgba(10, 10, 20, 0.9);
-            border: 1px solid rgba(60, 60, 80, 0.4);
-        }
-        
-        .tab-active {
-            border-bottom: 2px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-        }
-        
+        body { font-family: 'Inter', sans-serif; }
         [x-cloak] { display: none !important; }
-        
-        .animate-pulse-slow {
-            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        
-        .scanline {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-            opacity: 0.3;
-            animation: scan 4s linear infinite;
-            pointer-events: none;
-            z-index: 9999;
-        }
-        
-        @keyframes scan {
-            0% { transform: translateY(-100vh); }
-            100% { transform: translateY(100vh); }
-        }
     </style>
 </head>
-<body class="overflow-x-hidden" x-data="actuarialApp()">
-    <div class="scanline"></div>
-    
-    <!-- Navigation -->
-    <nav class="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-md border-b border-white/10">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-4">
-                <span class="display-font text-xl tracking-widest">ACTUWORRY</span>
-                <span class="text-xs text-cyan-400">// V-STAR ENGINE</span>
-            </div>
-            <div class="hidden md:flex items-center gap-8">
-                <button @click="tab = 'montecarlo'" :class="tab === 'montecarlo' ? 'text-cyan-400' : 'text-white/70'" class="text-sm uppercase tracking-wider hover:text-cyan-400 transition">Monte Carlo</button>
-                <button @click="tab = 'risk'" :class="tab === 'risk' ? 'text-cyan-400' : 'text-white/70'" class="text-sm uppercase tracking-wider hover:text-cyan-400 transition">Risk VaR/CTE</button>
-                <button @click="tab = 'duration'" :class="tab === 'duration' ? 'text-cyan-400' : 'text-white/70'" class="text-sm uppercase tracking-wider hover:text-cyan-400 transition">Duration</button>
-                <button @click="tab = 'rates'" :class="tab === 'rates' ? 'text-cyan-400' : 'text-white/70'" class="text-sm uppercase tracking-wider hover:text-cyan-400 transition">Rates</button>
-                <button @click="tab = 'calculator'" :class="tab === 'calculator' ? 'text-cyan-400' : 'text-white/70'" class="text-sm uppercase tracking-wider hover:text-cyan-400 transition">Premium</button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section class="section-film bg-gradient-to-br from-slate-900 via-black to-slate-900">
-        <div class="gradient-overlay"></div>
-        <div class="relative z-10 text-center px-6">
-            <p class="text-cyan-400 text-sm tracking-[0.3em] mb-4 animate-pulse-slow">HIGH-PERFORMANCE ACTUARIAL ENGINE</p>
-            <h1 class="display-font text-5xl md:text-7xl lg:text-8xl mb-6 neon-text">V-STAR</h1>
-            <p class="text-white/60 text-lg md:text-xl max-w-2xl mx-auto mb-10">
-                Zero-dependency Go actuarial engine. Monte Carlo. VaR/CTE Risk. Duration. Annuities. Reserves.
-            </p>
-            <div class="flex flex-wrap justify-center gap-6">
-                <button @click="tab = 'montecarlo'" class="ghost-btn display-font text-sm">RUN SIMULATION</button>
-                <button @click="tab = 'risk'" class="ghost-btn display-font text-sm">RISK ANALYSIS</button>
-            </div>
-        </div>
-    </section>
-
-    <!-- Monte Carlo Tab -->
-    <section x-show="tab === 'montecarlo'" x-cloak class="py-20 bg-black">
-        <div class="max-w-5xl mx-auto px-6">
-            <div class="text-center mb-12">
-                <p class="text-cyan-400 text-xs tracking-[0.3em] mb-2">STOCHASTIC SIMULATION</p>
-                <h2 class="display-font text-3xl md:text-4xl mb-4">MONTE CARLO ENGINE</h2>
-                <p class="text-white/50">Generate GBM interest rate paths. Quantify risk under uncertainty.</p>
-            </div>
-            
-            <div class="grid md:grid-cols-2 gap-8">
-                <!-- Input Panel -->
-                <div class="data-panel p-8 rounded-lg">
-                    <h3 class="display-font text-lg mb-6 text-cyan-400">SIMULATION PARAMETERS</h3>
-                    
-                    <div class="space-y-5">
-                        <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Number of Paths</label>
-                            <input type="number" x-model.number="mcConfig.num_paths" class="input-dark w-full" placeholder="10000">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Drift (μ)</label>
-                            <input type="number" x-model.number="mcConfig.drift" step="0.01" class="input-dark w-full" placeholder="0.02">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Volatility (σ)</label>
-                            <input type="number" x-model.number="mcConfig.volatility" step="0.01" class="input-dark w-full" placeholder="0.15">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Seed (optional)</label>
-                            <input type="number" x-model.number="mcConfig.seed" class="input-dark w-full" placeholder="Random">
-                        </div>
-                    </div>
-                    
-                    <button @click="runMonteCarlo()" class="ghost-btn w-full mt-8 display-font text-sm" :disabled="loading">
-                        <span x-show="!loading">EXECUTE SIMULATION</span>
-                        <span x-show="loading" class="text-cyan-400">PROCESSING...</span>
-                    </button>
-                </div>
-                
-                <!-- Results Panel -->
-                <div class="data-panel p-8 rounded-lg">
-                    <h3 class="display-font text-lg mb-6 text-cyan-400">RISK METRICS</h3>
-                    
-                    <div x-show="mcResult" class="space-y-4">
-                        <div class="flex justify-between border-b border-white/10 pb-3">
-                            <span class="text-white/50">VAR 95%</span>
-                            <span class="text-xl font-bold" x-text="formatNumber(mcResult.var_95)"></span>
-                        </div>
-                        <div class="flex justify-between border-b border-white/10 pb-3">
-                            <span class="text-white/50">VAR 99%</span>
-                            <span class="text-xl font-bold" x-text="formatNumber(mcResult.var_99)"></span>
-                        </div>
-                        <div class="flex justify-between border-b border-white/10 pb-3">
-                            <span class="text-white/50">CTE 95%</span>
-                            <span class="text-xl font-bold" x-text="formatNumber(mcResult.cte_95)"></span>
-                        </div>
-                        <div class="flex justify-between border-b border-white/10 pb-3">
-                            <span class="text-white/50">CTE 99%</span>
-                            <span class="text-xl font-bold" x-text="formatNumber(mcResult.cte_99)"></span>
-                        </div>
-                        <div class="flex justify-between border-b border-white/10 pb-3">
-                            <span class="text-white/50">Mean</span>
-                            <span class="text-white/80" x-text="formatNumber(mcResult.mean)"></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-white/50">Std Dev</span>
-                            <span class="text-white/80" x-text="formatNumber(mcResult.std_dev)"></span>
-                        </div>
-                    </div>
-                    
-                    <div x-show="!mcResult" class="text-center py-12 text-white/30">
-                        <p class="text-2xl mb-2">▓▓▓▓▓</p>
-                        <p class="text-sm">AWAITING SIMULATION</p>
-                    </div>
+<body class="bg-slate-900 text-white" x-data="actuarialApp()">
+    <!-- Header -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-lg">A</div>
+                <div>
+                    <h1 class="font-bold text-xl">Actuworry</h1>
+                    <p class="text-xs text-slate-400">Powered by Go + v-star engine</p>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <!-- Risk Analysis Tab -->
-    <section x-show="tab === 'risk'" x-cloak class="py-20 bg-black">
-        <div class="max-w-5xl mx-auto px-6">
-            <div class="text-center mb-12">
-                <p class="text-cyan-400 text-xs tracking-[0.3em] mb-2">QUANTITATIVE RISK</p>
-                <h2 class="display-font text-3xl md:text-4xl mb-4">VALUE AT RISK / CTE</h2>
-                <p class="text-white/50">Compute VaR and Conditional Tail Expectation for loss distributions.</p>
+            <div class="flex gap-1">
+                <template x-for="t in tabs" :key="t.id">
+                    <button @click="activeTab = t.id" 
+                            :class="activeTab === t.id ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-700'"
+                            class="px-4 py-2 rounded-lg text-sm font-medium transition" x-text="t.name"></button>
+                </template>
             </div>
-            
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="data-panel p-8 rounded-lg">
-                    <h3 class="display-font text-lg mb-6 text-cyan-400">LOSS DISTRIBUTION</h3>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Tab: Premium Calculator -->
+        <section x-show="activeTab === 'pricing'" x-cloak>
+            <div class="grid lg:grid-cols-3 gap-6">
+                <!-- Form -->
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01m-9.01 9h.01M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        Policy Details
+                    </h2>
                     
-                    <div class="space-y-5">
-                        <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Losses (comma-separated)</label>
-                            <textarea x-model="riskInput" rows="6" class="input-dark w-full font-mono text-sm" placeholder="100, 250, 180, 420, 95, 310, 200, 150, 280, 175"></textarea>
-                        </div>
-                    </div>
-                    
-                    <button @click="runRiskAnalysis()" class="ghost-btn w-full mt-6 display-font text-sm">
-                        COMPUTE RISK METRICS
-                    </button>
-                </div>
-                
-                <div class="data-panel p-8 rounded-lg">
-                    <h3 class="display-font text-lg mb-6 text-cyan-400">RISK REPORT</h3>
-                    
-                    <div x-show="riskResult" class="space-y-4">
+                    <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-slate-900/50 p-4 rounded">
-                                <p class="text-xs text-white/50 mb-1">VAR 95%</p>
-                                <p class="text-2xl font-bold text-cyan-400" x-text="formatNumber(riskResult.var_95)"></p>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Insured Age</label>
+                                <input type="number" x-model.number="policy.age" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
                             </div>
-                            <div class="bg-slate-900/50 p-4 rounded">
-                                <p class="text-xs text-white/50 mb-1">VAR 99%</p>
-                                <p class="text-2xl font-bold text-cyan-400" x-text="formatNumber(riskResult.var_99)"></p>
-                            </div>
-                            <div class="bg-slate-900/50 p-4 rounded">
-                                <p class="text-xs text-white/50 mb-1">CTE 95%</p>
-                                <p class="text-2xl font-bold text-magenta-400" x-text="formatNumber(riskResult.cte_95)"></p>
-                            </div>
-                            <div class="bg-slate-900/50 p-4 rounded">
-                                <p class="text-xs text-white/50 mb-1">CTE 99%</p>
-                                <p class="text-2xl font-bold text-magenta-400" x-text="formatNumber(riskResult.cte_99)"></p>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Gender</label>
+                                <select x-model="policy.table_name" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div x-show="!riskResult" class="text-center py-8 text-white/30">
-                        ENTER LOSS DISTRIBUTION
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Duration Tab -->
-    <section x-show="tab === 'duration'" x-cloak class="py-20 bg-black">
-        <div class="max-w-5xl mx-auto px-6">
-            <div class="text-center mb-12">
-                <p class="text-cyan-400 text-xs tracking-[0.3em] mb-2">BOND ANALYSIS</p>
-                <h2 class="display-font text-3xl md:text-4xl mb-4">DURATION & CONVEXITY</h2>
-                <p class="text-white/50">Calculate Macaulay/modified duration and convexity for bond portfolios.</p>
-            </div>
-            
-            <div class="grid md:grid-cols-2 gap-8">
-                <div class="data-panel p-8 rounded-lg">
-                    <h3 class="display-font text-lg mb-6 text-cyan-400">CASH FLOW STREAM</h3>
-                    
-                    <div class="space-y-5">
+                        
                         <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Cash Flows (comma-separated)</label>
-                            <textarea x-model="durationInput.cash_flows" rows="4" class="input-dark w-full font-mono text-sm" placeholder="100, 100, 100, 100, 1100"></textarea>
-                            <p class="text-xs text-white/30 mt-2">Example: coupon payments + principal</p>
+                            <label class="block text-xs text-slate-400 mb-1">Product Type</label>
+                            <select x-model="policy.product_type" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                                <option value="term_life">Term Life</option>
+                                <option value="whole_life">Whole Life</option>
+                                <option value="endowment">Endowment</option>
+                            </select>
                         </div>
-                        <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Yield to Maturity (%)</label>
-                            <input type="number" x-model.number="durationInput.rate" step="0.01" class="input-dark w-full" placeholder="5.0">
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Sum Assured (BWP)</label>
+                                <input type="number" x-model.number="policy.sum_assured" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Term (years)</label>
+                                <input type="number" x-model.number="policy.term" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Interest Rate (%)</label>
+                                <input type="number" x-model.number="policy.interest_rate" step="0.1" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Smoker?</label>
+                                <select x-model="policy.smoker_status" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                                    <option value="">No</option>
+                                    <option value="smoker">Yes</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     
-                    <button @click="runDuration()" class="ghost-btn w-full mt-6 display-font text-sm">
-                        CALCULATE MEASURES
+                    <button @click="calculatePremium()" :disabled="loading" class="w-full mt-6 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg py-3 font-semibold transition">
+                        <span x-show="!loading">Calculate Premium</span>
+                        <span x-show="loading">Calculating...</span>
                     </button>
                 </div>
                 
-                <div class="data-panel p-8 rounded-lg">
-                    <h3 class="display-font text-lg mb-6 text-cyan-400">DURATION RESULTS</h3>
+                <!-- Results -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Premium Cards -->
+                    <div x-show="pricingResult" class="grid sm:grid-cols-3 gap-4">
+                        <div class="bg-slate-800 rounded-xl p-6">
+                            <p class="text-sm text-slate-400 mb-1">Net Premium</p>
+                            <p class="text-2xl font-bold text-emerald-400" x-text="'BWP ' + formatNumber(pricingResult.net_premium)"></p>
+                            <p class="text-xs text-slate-500 mt-1">Pure risk cost</p>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-6">
+                            <p class="text-sm text-slate-400 mb-1">Gross Premium</p>
+                            <p class="text-2xl font-bold text-indigo-400" x-text="'BWP ' + formatNumber(pricingResult.gross_premium)"></p>
+                            <p class="text-xs text-slate-500 mt-1">With expenses + profit</p>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-6">
+                            <p class="text-sm text-slate-400 mb-1">Monthly Cost</p>
+                            <p class="text-2xl font-bold" x-text="'BWP ' + formatNumber(pricingResult.gross_premium / 12)"></p>
+                            <p class="text-xs text-slate-500 mt-1">If paid monthly</p>
+                        </div>
+                    </div>
                     
-                    <div x-show="durationResult" class="space-y-6">
-                        <div class="text-center p-6 bg-slate-900/50 rounded-lg neon-border">
-                            <p class="text-xs text-white/50 mb-2">MACAULAY DURATION</p>
-                            <p class="text-4xl font-bold text-cyan-400" x-text="durationResult.macaulay_duration.toFixed(4)"></p>
-                        </div>
-                        <div class="text-center p-6 bg-slate-900/50 rounded-lg">
-                            <p class="text-xs text-white/50 mb-2">MODIFIED DURATION</p>
-                            <p class="text-4xl font-bold" x-text="durationResult.modified_duration.toFixed(4)"></p>
-                        </div>
-                        <div class="text-center p-6 bg-slate-900/50 rounded-lg">
-                            <p class="text-xs text-white/50 mb-2">CONVEXITY</p>
-                            <p class="text-4xl font-bold text-magenta-400" x-text="durationResult.convexity.toFixed(4)"></p>
+                    <!-- Reserve Chart -->
+                    <div x-show="pricingResult && pricingResult.reserve_schedule" class="bg-slate-800 rounded-xl p-6">
+                        <h3 class="font-semibold mb-4">Reserve Schedule Over Policy Term</h3>
+                        <div class="h-64">
+                            <canvas id="reserveChart"></canvas>
                         </div>
                     </div>
                     
-                    <div x-show="!durationResult" class="text-center py-12 text-white/30">
-                        ENTER CASH FLOWS
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Rate Converter Tab -->
-    <section x-show="tab === 'rates'" x-cloak class="py-20 bg-black">
-        <div class="max-w-5xl mx-auto px-6">
-            <div class="text-center mb-12">
-                <p class="text-cyan-400 text-xs tracking-[0.3em] mb-2">INTEREST THEORY</p>
-                <h2 class="display-font text-3xl md:text-4xl mb-4">RATE CONVERSIONS</h2>
-                <p class="text-white/50">Convert between nominal, effective, and force of interest rates.</p>
-            </div>
-            
-            <div class="data-panel p-8 rounded-lg max-w-2xl mx-auto">
-                <div class="space-y-5">
-                    <div class="grid md:grid-cols-2 gap-5">
-                        <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Nominal Rate (%)</label>
-                            <input type="number" x-model.number="rateInput.nominal" step="0.01" class="input-dark w-full" placeholder="4.8">
+                    <!-- No Result State -->
+                    <div x-show="!pricingResult" class="bg-slate-800 rounded-xl p-12 text-center">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-slate-700 rounded-full flex items-center justify-center">
+                            <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01"/></svg>
                         </div>
-                        <div>
-                            <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Effective Rate (%)</label>
-                            <input type="number" x-model.number="rateInput.effective" step="0.01" class="input-dark w-full" placeholder="5.0">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-white/50 mb-2 uppercase tracking-wider">Compounding Frequency</label>
-                        <select x-model.number="rateInput.compounding" class="input-dark w-full">
-                            <option value="1">Annual (m=1)</option>
-                            <option value="2">Semi-Annual (m=2)</option>
-                            <option value="4">Quarterly (m=4)</option>
-                            <option value="12">Monthly (m=12)</option>
-                            <option value="365">Daily (m=365)</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <button @click="runRateConvert()" class="ghost-btn w-full mt-6 display-font text-sm">
-                    CONVERT RATES
-                </button>
-                
-                <div x-show="rateResult" class="mt-8 grid grid-cols-3 gap-4">
-                    <div class="text-center p-4 bg-slate-900/50 rounded">
-                        <p class="text-xs text-white/50 mb-1">NOMINAL</p>
-                        <p class="text-xl font-bold" x-text="(rateResult.nominal_rate * 100).toFixed(3) + '%'"></p>
-                    </div>
-                    <div class="text-center p-4 bg-slate-900/50 rounded">
-                        <p class="text-xs text-white/50 mb-1">EFFECTIVE</p>
-                        <p class="text-xl font-bold text-cyan-400" x-text="(rateResult.effective_rate * 100).toFixed(3) + '%'"></p>
-                    </div>
-                    <div class="text-center p-4 bg-slate-900/50 rounded">
-                        <p class="text-xs text-white/50 mb-1">FORCE δ</p>
-                        <p class="text-xl font-bold text-magenta-400" x-text="rateResult.force_of_interest.toFixed(6)"></p>
+                        <p class="text-slate-400">Enter policy details and calculate to see premiums</p>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Premium Calculator Tab -->
-    <section x-show="tab === 'calculator'" x-cloak class="py-20 bg-black">
-        <div class="max-w-6xl mx-auto px-6">
-            <div class="text-center mb-12">
-                <p class="text-cyan-400 text-xs tracking-[0.3em] mb-2">LIFE INSURANCE</p>
-                <h2 class="display-font text-3xl md:text-4xl mb-4">PREMIUM CALCULATOR</h2>
-                <p class="text-white/50">Compute net and gross premiums for life insurance products.</p>
-            </div>
-            
-            <div class="grid lg:grid-cols-3 gap-8">
-                <div class="data-panel p-6 rounded-lg lg:col-span-1">
-                    <h3 class="display-font text-sm mb-6 text-cyan-400">POLICY PARAMETERS</h3>
+        <!-- Tab: Valuations -->
+        <section x-show="activeTab === 'valuation'" x-cloak>
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.336 2.867.904M12 8V4m0 4h4m-4 4l2 2m-2-2l-2 2"/></svg>
+                        Present Value Calculator
+                    </h2>
+                    <p class="text-sm text-slate-400 mb-4">Calculate present value of future cash flows using discount factor.</p>
                     
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-xs text-white/50 mb-1">Age</label>
-                            <input type="number" x-model.number="policy.age" class="input-dark w-full">
+                            <label class="block text-xs text-slate-400 mb-1">Future Amount (BWP)</label>
+                            <input type="number" x-model.number="pvConfig.amount" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
                         </div>
                         <div>
-                            <label class="block text-xs text-white/50 mb-1">Gender</label>
-                            <select x-model="policy.gender" class="input-dark w-full">
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                            </select>
+                            <label class="block text-xs text-slate-400 mb-1">Term (years)</label>
+                            <input type="number" x-model.number="pvConfig.term" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
                         </div>
                         <div>
-                            <label class="block text-xs text-white/50 mb-1">Product</label>
-                            <select x-model="policy.product_type" class="input-dark w-full">
-                                <option value="term_life">Term Life</option>
-                                <option value="whole_life">Whole Life</option>
-                            </select>
+                            <label class="block text-xs text-slate-400 mb-1">Interest Rate (%)</label>
+                            <input type="number" x-model.number="pvConfig.rate" step="0.1" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
                         </div>
-                        <div>
-                            <label class="block text-xs text-white/50 mb-1">Coverage (BWP)</label>
-                            <input type="number" x-model.number="policy.sum_assured" class="input-dark w-full">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-white/50 mb-1">Term (years)</label>
-                            <input type="number" x-model.number="policy.term" class="input-dark w-full">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-white/50 mb-1">Interest Rate (%)</label>
-                            <input type="number" x-model.number="policy.interest_rate" step="0.1" class="input-dark w-full">
-                        </div>
+                        <button @click="calculatePV()" class="w-full bg-indigo-600 hover:bg-indigo-500 rounded-lg py-3 font-semibold mt-4">Calculate PV</button>
                     </div>
                     
-                    <button @click="calculatePremium()" class="ghost-btn w-full mt-6 display-font text-sm" :disabled="loading">
-                        <span x-show="!loading">CALCULATE</span>
-                        <span x-show="loading" class="text-cyan-400">COMPUTING...</span>
-                    </button>
+                    <div x-show="pvResult" class="mt-6 p-4 bg-slate-700 rounded-lg">
+                        <p class="text-sm text-slate-400">Present Value</p>
+                        <p class="text-3xl font-bold text-emerald-400" x-text="'BWP ' + formatNumber(pvResult)"></p>
+                    </div>
                 </div>
                 
-                <div class="data-panel p-6 rounded-lg lg:col-span-2">
-                    <h3 class="display-font text-sm mb-6 text-cyan-400">CALCULATION RESULTS</h3>
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Annuity Calculator
+                    </h2>
+                    <p class="text-sm text-slate-400 mb-4">Calculate annuity values for retirement planning.</p>
                     
-                    <div x-show="result" class="grid sm:grid-cols-2 gap-6">
-                        <div class="bg-slate-900/50 p-6 rounded-lg">
-                            <p class="text-xs text-white/50 mb-2">NET PREMIUM</p>
-                            <p class="text-4xl font-bold text-cyan-400" x-text="'BWP ' + formatNumber(result.net_premium)"></p>
-                            <p class="text-xs text-white/30 mt-2">Pure risk cost</p>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Annuitant Age</label>
+                            <input type="number" x-model.number="annuityConfig.age" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
                         </div>
-                        <div class="bg-slate-900/50 p-6 rounded-lg">
-                            <p class="text-xs text-white/50 mb-2">GROSS PREMIUM</p>
-                            <p class="text-4xl font-bold" x-text="'BWP ' + formatNumber(result.gross_premium)"></p>
-                            <p class="text-xs text-white/30 mt-2">Including expenses + profit</p>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Annual Payment (BWP)</label>
+                            <input type="number" x-model.number="annuityConfig.amount" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
                         </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Deferral Period (years)</label>
+                            <input type="number" x-model.number="annuityConfig.deferral" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Interest Rate (%)</label>
+                            <input type="number" x-model.number="annuityConfig.rate" step="0.1" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                        </div>
+                        <button @click="calculateAnnuity()" class="w-full bg-indigo-600 hover:bg-indigo-500 rounded-lg py-3 font-semibold mt-4">Calculate Annuity</button>
                     </div>
                     
-                    <div x-show="!result" class="text-center py-16 text-white/30">
-                        <p class="text-4xl mb-4">▓▓▓▓▓</p>
-                        <p>ENTER POLICY TO COMPUTE PREMIUM</p>
+                    <div x-show="annuityResult" class="mt-6 space-y-3">
+                        <div class="p-4 bg-slate-700 rounded-lg">
+                            <p class="text-sm text-slate-400">Single Premium Required</p>
+                            <p class="text-2xl font-bold text-emerald-400" x-text="'BWP ' + formatNumber(annuityResult.total_premium_cost)"></p>
+                        </div>
+                        <div class="p-3 bg-slate-700 rounded-lg flex justify-between">
+                            <span class="text-slate-400">Annual Payout</span>
+                            <span class="font-semibold" x-text="'BWP ' + formatNumber(annuityResult.annual_payout)"></span>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
+
+        <!-- Tab: Reserves -->
+        <section x-show="activeTab === 'reserves'" x-cloak>
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4">Net Premium Reserve</h2>
+                    <p class="text-sm text-slate-400 mb-4">Prospective reserve: future benefits minus future premiums.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Policy Year</label>
+                                <input type="number" x-model.number="reserveConfig.year" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-400 mb-1">Original Sum Assured</label>
+                                <input type="number" x-model.number="reserveConfig.sum_assured" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                            </div>
+                        </div>
+                        <button @click="calculateNPR()" class="w-full bg-indigo-600 hover:bg-indigo-500 rounded-lg py-3 font-semibold">Calculate Reserve</button>
+                    </div>
+                </div>
+                
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4">Retrospective Reserve</h2>
+                    <p class="text-sm text-slate-400 mb-4">Accumulated premiums minus accumulated claims.</p>
+                    
+                    <div x-show="retroResult" class="space-y-4">
+                        <div class="p-4 bg-slate-700 rounded-lg">
+                            <p class="text-sm text-slate-400">Accumulated Premiums</p>
+                            <p class="text-xl font-bold" x-text="'BWP ' + formatNumber(retroResult.accumulated_premium)"></p>
+                        </div>
+                        <div class="p-4 bg-slate-700 rounded-lg">
+                            <p class="text-sm text-slate-400">Accumulated Claims</p>
+                            <p class="text-xl font-bold" x-text="'BWP ' + formatNumber(retroResult.accumulated_claims)"></p>
+                        </div>
+                        <div class="p-4 bg-indigo-900/50 rounded-lg border border-indigo-500">
+                            <p class="text-sm text-indigo-300">Reserve</p>
+                            <p class="text-2xl font-bold text-indigo-400" x-text="'BWP ' + formatNumber(retroResult.reserve)"></p>
+                        </div>
+                    </div>
+                    
+                    <div x-show="!retroResult" class="p-8 text-center text-slate-500">
+                        <p>Select policy from Premium tab first</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Simulations -->
+        <section x-show="activeTab === 'simulation'" x-cloak>
+            <div class="grid lg:grid-cols-3 gap-6">
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        Monte Carlo Simulation
+                    </h2>
+                    <p class="text-sm text-slate-400 mb-4">Generate stochastic interest rate paths using GBM.</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Number of Paths</label>
+                            <input type="number" x-model.number="mcConfig.num_paths" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Drift (μ)</label>
+                            <input type="number" x-model.number="mcConfig.drift" step="0.01" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2" placeholder="0.02">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Volatility (σ)</label>
+                            <input type="number" x-model.number="mcConfig.vol" step="0.01" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2" placeholder="0.15">
+                        </div>
+                        <button @click="runMonteCarlo()" :disabled="loading" class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg py-3 font-semibold mt-4">
+                            <span x-show="!loading">Run Simulation</span>
+                            <span x-show="loading">Simulating...</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Risk Metrics -->
+                    <div x-show="mcResult" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-slate-800 rounded-xl p-4">
+                            <p class="text-xs text-slate-400 mb-1">Mean</p>
+                            <p class="text-xl font-bold" x-text="mcResult.mean.toFixed(2)"></p>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-4">
+                            <p class="text-xs text-slate-400 mb-1">Std Dev</p>
+                            <p class="text-xl font-bold" x-text="mcResult.std_dev.toFixed(2)"></p>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-4">
+                            <p class="text-xs text-slate-400 mb-1">VaR 95%</p>
+                            <p class="text-xl font-bold text-amber-400" x-text="mcResult.var_95.toFixed(2)"></p>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-4">
+                            <p class="text-xs text-slate-400 mb-1">CTE 95%</p>
+                            <p class="text-xl font-bold text-rose-400" x-text="mcResult.cte_95.toFixed(2)"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Distribution Chart -->
+                    <div x-show="mcResult" class="bg-slate-800 rounded-xl p-6">
+                        <h3 class="font-semibold mb-4">Distribution of Final Rates</h3>
+                        <div class="h-64">
+                            <canvas id="mcChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div x-show="!mcResult" class="bg-slate-800 rounded-xl p-12 text-center">
+                        <p class="text-slate-400">Run Monte Carlo simulation to see results</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Risk Analysis -->
+        <section x-show="activeTab === 'risk'" x-cloak>
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        VaR / CTE Calculator
+                    </h2>
+                    <p class="text-sm text-slate-400 mb-4">Calculate Value at Risk and Conditional Tail Expectation.</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Loss Distribution (comma-separated)</label>
+                            <textarea x-model="riskInput" rows="4" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 font-mono text-sm" placeholder="100, 250, 180, 420, 95, 310, 200, 150, 280, 175"></textarea>
+                        </div>
+                        <button @click="calculateRisk()" class="w-full bg-indigo-600 hover:bg-indigo-500 rounded-lg py-3 font-semibold">Compute Risk Metrics</button>
+                    </div>
+                </div>
+                
+                <div x-show="riskResult" class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-800 rounded-xl p-6">
+                            <p class="text-sm text-slate-400 mb-1">VaR 95%</p>
+                            <p class="text-3xl font-bold text-amber-400" x-text="riskResult.var_95.toFixed(2)"></p>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-6">
+                            <p class="text-sm text-slate-400 mb-1">VaR 99%</p>
+                            <p class="text-3xl font-bold text-amber-500" x-text="riskResult.var_99.toFixed(2)"></p>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-6">
+                            <p class="text-sm text-slate-400 mb-1">CTE 95%</p>
+                            <p class="text-3xl font-bold text-rose-400" x-text="riskResult.cte_95.toFixed(2)"></p>
+                        </div>
+                        <div class="bg-slate-800 rounded-xl p-6">
+                            <p class="text-sm text-slate-400 mb-1">CTE 99%</p>
+                            <p class="text-3xl font-bold text-rose-500" x-text="riskResult.cte_99.toFixed(2)"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div x-show="!riskResult" class="bg-slate-800 rounded-xl p-12 text-center lg:col-span-2">
+                    <p class="text-slate-400">Enter loss distribution to compute risk metrics</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Rate Converter -->
+        <section x-show="activeTab === 'rates'" x-cloak>
+            <div class="grid lg:grid-cols-2 gap-6">
+                <div class="bg-slate-800 rounded-xl p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                        Rate Converter
+                    </h2>
+                    <p class="text-sm text-slate-400 mb-4">Convert between nominal, effective, and force of interest.</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Nominal Rate (%)</label>
+                            <input type="number" x-model.number="rateInput.nominal" step="0.01" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-1">Compounding (m)</label>
+                            <select x-model.number="rateInput.compounding" class="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2">
+                                <option value="1">Annual (m=1)</option>
+                                <option value="2">Semi-annual (m=2)</option>
+                                <option value="4">Quarterly (m=4)</option>
+                                <option value="12">Monthly (m=12)</option>
+                                <option value="365">Daily (m=365)</option>
+                            </select>
+                        </div>
+                        <button @click="convertRate()" class="w-full bg-indigo-600 hover:bg-indigo-500 rounded-lg py-3 font-semibold mt-4">Convert</button>
+                    </div>
+                </div>
+                
+                <div x-show="rateResult" class="space-y-4">
+                    <div class="bg-slate-800 rounded-xl p-6 text-center">
+                        <p class="text-sm text-slate-400 mb-1">Effective Rate</p>
+                        <p class="text-4xl font-bold text-emerald-400" x-text="(rateResult.effective_rate * 100).toFixed(4) + '%'"></p>
+                    </div>
+                    <div class="bg-slate-800 rounded-xl p-6 text-center">
+                        <p class="text-sm text-slate-400 mb-1">Force of Interest (δ)</p>
+                        <p class="text-4xl font-bold text-indigo-400" x-text="rateResult.force_of_interest.toFixed(6)"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab: Performance -->
+        <section x-show="activeTab === 'performance'" x-cloak>
+            <div class="bg-slate-800 rounded-xl p-8">
+                <h2 class="text-lg font-semibold mb-2 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    v-star Engine Performance
+                </h2>
+                <p class="text-sm text-slate-400 mb-6">Benchmark comparisons: Go + v-star vs traditional actuarial tools.</p>
+                
+                <div class="grid sm:grid-cols-3 gap-6">
+                    <div class="text-center p-6 bg-slate-700 rounded-xl">
+                        <p class="text-sm text-slate-400 mb-2">CSV Parsing</p>
+                        <p class="text-3xl font-bold text-emerald-400">28M+</p>
+                        <p class="text-xs text-slate-500">rows/sec</p>
+                    </div>
+                    <div class="text-center p-6 bg-slate-700 rounded-xl">
+                        <p class="text-sm text-slate-400 mb-2">Monte Carlo</p>
+                        <p class="text-3xl font-bold text-emerald-400">100K+</p>
+                        <p class="text-xs text-slate-500">paths/sec</p>
+                    </div>
+                    <div class="text-center p-6 bg-slate-700 rounded-xl">
+                        <p class="text-sm text-slate-400 mb-2">PV Calculations</p>
+                        <p class="text-3xl font-bold text-emerald-400">28M+</p>
+                        <p class="text-xs text-slate-500">calcs/sec</p>
+                    </div>
+                </div>
+                
+                <div class="mt-8 p-6 bg-slate-700 rounded-xl">
+                    <h3 class="font-semibold mb-4">Why Go + v-star?</h3>
+                    <ul class="space-y-2 text-sm text-slate-300">
+                        <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Zero dependencies (standard library only)</li>
+                        <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> 10-50x faster than Excel VBA</li>
+                        <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Parallel processing out of the box</li>
+                        <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Memory efficient streaming</li>
+                        <li class="flex items-center gap-2"><span class="text-emerald-400">✓</span> Deterministic calculations</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
 
     <!-- Footer -->
-    <footer class="py-12 border-t border-white/10 bg-black">
-        <div class="max-w-5xl mx-auto px-6 text-center">
-            <p class="display-font text-lg mb-4">ACTUWORRY</p>
-            <p class="text-white/40 text-sm mb-6">
-                Powered by <span class="text-cyan-400">v-star</span> actuarial engine • 
-                <span x-text="new Date().getFullYear()"></span>
-            </p>
-            <p class="text-xs text-white/20">
-                Educational use only. Not for commercial decisions.
-            </p>
+    <footer class="border-t border-slate-700 mt-16 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-sm text-slate-500">
+            <p>Actuworry — Actuarial platform built with Go + v-star engine</p>
+            <p class="mt-2">Educational use only. Not for commercial decisions.</p>
         </div>
     </footer>
 
     <script>
         function actuarialApp() {
             return {
-                tab: 'montecarlo',
+                activeTab: 'pricing',
                 loading: false,
-                result: null,
+                tabs: [
+                    { id: 'pricing', name: 'Premium' },
+                    { id: 'valuation', name: 'Valuation' },
+                    { id: 'reserves', name: 'Reserves' },
+                    { id: 'simulation', name: 'Simulation' },
+                    { id: 'risk', name: 'Risk' },
+                    { id: 'rates', name: 'Rates' },
+                    { id: 'performance', name: 'Performance' }
+                ],
+                
+                // Policy config
+                policy: { age: 35, table_name: 'male', product_type: 'term_life', sum_assured: 100000, term: 20, interest_rate: 5, smoker_status: '' },
+                pricingResult: null,
+                
+                // PV config
+                pvConfig: { amount: 100000, term: 20, rate: 5 },
+                pvResult: null,
+                annuityConfig: { age: 50, amount: 12000, deferral: 10, rate: 5 },
+                annuityResult: null,
+                
+                // Reserve config
+                reserveConfig: { year: 5, sum_assured: 100000 },
+                retroResult: null,
                 
                 // Monte Carlo
-                mcConfig: { num_paths: 10000, drift: 0.02, volatility: 0.15, seed: 0 },
+                mcConfig: { num_paths: 10000, drift: 0.02, vol: 0.15 },
                 mcResult: null,
                 
                 // Risk
-                riskInput: '100, 250, 180, 420, 95, 310, 200, 150, 280, 175, 320, 90, 450, 200, 160',
+                riskInput: '100, 250, 180, 420, 95, 310, 200, 150, 280, 175, 320, 90, 450',
                 riskResult: null,
                 
-                // Duration
-                durationInput: { cash_flows: '100, 100, 100, 100, 1100', rate: 5 },
-                durationResult: null,
-                
-                // Rate Converter
-                rateInput: { nominal: 4.8, effective: 0, compounding: 12 },
+                // Rate
+                rateInput: { nominal: 5, compounding: 12 },
                 rateResult: null,
                 
-                // Premium Calculator
-                policy: { age: 35, gender: 'male', product_type: 'term_life', sum_assured: 100000, term: 10, interest_rate: 5 },
+                charts: {},
                 
                 apiUrl: '/api',
                 
@@ -533,24 +515,79 @@
                     return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                 },
                 
+                async calculatePremium() {
+                    this.loading = true;
+                    try {
+                        const res = await fetch(`${this.apiUrl}/calculate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ...this.policy, interest_rate: this.policy.interest_rate / 100 })
+                        });
+                        this.pricingResult = await res.json();
+                        this.updateReserveChart();
+                    } catch(e) { console.error(e); }
+                    finally { this.loading = false; }
+                },
+                
+                updateReserveChart() {
+                    if (!this.pricingResult?.reserve_schedule) return;
+                    const ctx = document.getElementById('reserveChart');
+                    if (!ctx) return;
+                    if (this.charts.reserve) this.charts.reserve.destroy();
+                    this.charts.reserve = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: this.pricingResult.reserve_schedule.map((_, i) => i),
+                            datasets: [{ label: 'Reserve (BWP)', data: this.pricingResult.reserve_schedule, borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.1)', fill: true, tension: 0.3 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                    });
+                },
+                
+                async calculatePV() {
+                    const v = 1 / (1 + this.pvConfig.rate / 100);
+                    this.pvResult = this.pvConfig.amount * Math.pow(v, this.pvConfig.term);
+                },
+                
+                async calculateAnnuity() {
+                    try {
+                        const res = await fetch(`${this.apiUrl}/calculate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                age: this.annuityConfig.age,
+                                product_type: 'deferred_annuity',
+                                sum_assured: this.annuityConfig.amount,
+                                term: 20,
+                                deferral_period: this.annuityConfig.deferral,
+                                interest_rate: this.annuityConfig.rate / 100
+                            })
+                        });
+                        this.annuityResult = await res.json();
+                    } catch(e) { console.error(e); }
+                },
+                
+                async calculateNPR() {
+                    // Use existing pricing result
+                    if (this.pricingResult?.reserve_schedule && this.reserveConfig.year < this.pricingResult.reserve_schedule.length) {
+                        alert(`Reserve at year ${this.reserveConfig.year}: BWP ${this.formatNumber(this.pricingResult.reserve_schedule[this.reserveConfig.year])}`);
+                    }
+                },
+                
                 async runMonteCarlo() {
                     this.loading = true;
                     try {
                         const res = await fetch(`${this.apiUrl}/vstar/montecarlo`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(this.mcConfig)
+                            body: JSON.stringify({ num_paths: this.mcConfig.num_paths, drift: this.mcConfig.drift, volatility: this.mcConfig.vol })
                         });
                         this.mcResult = await res.json();
-                    } catch (e) {
-                        console.error(e);
-                    } finally {
-                        this.loading = false;
-                    }
+                    } catch(e) { console.error(e); }
+                    finally { this.loading = false; }
                 },
                 
-                async runRiskAnalysis() {
-                    this.loading = true;
+                async calculateRisk() {
                     try {
                         const losses = this.riskInput.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
                         const res = await fetch(`${this.apiUrl}/vstar/risk`, {
@@ -559,71 +596,18 @@
                             body: JSON.stringify({ losses })
                         });
                         this.riskResult = await res.json();
-                    } catch (e) {
-                        console.error(e);
-                    } finally {
-                        this.loading = false;
-                    }
+                    } catch(e) { console.error(e); }
                 },
                 
-                async runDuration() {
-                    this.loading = true;
-                    try {
-                        const cfs = this.durationInput.cash_flows.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
-                        const res = await fetch(`${this.apiUrl}/vstar/duration`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ cash_flows: cfs, rate: this.durationInput.rate / 100 })
-                        });
-                        this.durationResult = await res.json();
-                    } catch (e) {
-                        console.error(e);
-                    } finally {
-                        this.loading = false;
-                    }
-                },
-                
-                async runRateConvert() {
-                    this.loading = true;
+                async convertRate() {
                     try {
                         const res = await fetch(`${this.apiUrl}/vstar/rate-convert`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                nominal_rate: this.rateInput.nominal / 100,
-                                effective_rate: this.rateInput.effective / 100,
-                                compounding: this.rateInput.compounding
-                            })
+                            body: JSON.stringify({ nominal_rate: this.rateInput.nominal / 100, compounding: parseInt(this.rateInput.compounding) })
                         });
                         this.rateResult = await res.json();
-                    } catch (e) {
-                        console.error(e);
-                    } finally {
-                        this.loading = false;
-                    }
-                },
-                
-                async calculatePremium() {
-                    this.loading = true;
-                    try {
-                        const res = await fetch(`${this.apiUrl}/calculate`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                age: this.policy.age,
-                                table_name: this.policy.gender,
-                                product_type: this.policy.product_type,
-                                sum_assured: this.policy.sum_assured,
-                                term: this.policy.term,
-                                interest_rate: this.policy.interest_rate / 100
-                            })
-                        });
-                        this.result = await res.json();
-                    } catch (e) {
-                        console.error(e);
-                    } finally {
-                        this.loading = false;
-                    }
+                    } catch(e) { console.error(e); }
                 }
             };
         }
