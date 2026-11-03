@@ -75,3 +75,31 @@ func TestReserveSchedule(t *testing.T) {
 		t.Errorf("Expected Reserve at t=2 to be %f, but got %f", expectedReserves[2], actualReserves[2])
 	}
 }
+
+func TestCustomExpenses(t *testing.T) {
+	policy := &Policy{
+		Age:            35,
+		Term:           2,
+		CoverageAmount: 1000,
+		InterestRate:   0.05,
+		ProductType:    "term_life",
+		Expenses:       &ExpenseStructure{},
+	}
+
+	result := CalculateFullPremium(policy, testMortalityTable)
+
+	if !floatEquals(result.NetPremium, result.GrossPremium, 0.01) {
+		t.Errorf("Expected zero expenses to leave gross at net, got net=%f gross=%f", result.NetPremium, result.GrossPremium)
+	}
+}
+
+func TestAnnuityLoading(t *testing.T) {
+	if !floatEquals(annuityLoading(&Policy{}), 0.10, 0.0001) {
+		t.Errorf("Expected default annuity loading of 0.10")
+	}
+
+	zero := 0.0
+	if !floatEquals(annuityLoading(&Policy{AnnuityLoading: &zero}), 0, 0.0001) {
+		t.Errorf("Expected explicit zero annuity loading")
+	}
+}

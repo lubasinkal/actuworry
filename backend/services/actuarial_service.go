@@ -256,10 +256,41 @@ func (s *ActuarialService) validatePolicy(policy *models.Policy) error {
 	if policy.InterestRate < 0 || policy.InterestRate > 1 {
 		return fmt.Errorf("interest rate must be between 0 and 1")
 	}
+	if policy.RatingFactor < 0 || policy.RatingFactor > 10 {
+		return fmt.Errorf("rating factor must be between 0 and 10")
+	}
+	if policy.Expenses != nil {
+		expenses := policy.Expenses
+		if expenses.InitialExpenseRate < 0 || expenses.InitialExpenseRate > 1 {
+			return fmt.Errorf("initial expense rate must be between 0 and 1")
+		}
+		if expenses.RenewalExpenseRate < 0 || expenses.RenewalExpenseRate > 1 {
+			return fmt.Errorf("renewal expense rate must be between 0 and 1")
+		}
+		if expenses.MaintenanceExpense < 0 {
+			return fmt.Errorf("maintenance expense must be positive")
+		}
+		if expenses.ProfitMargin < 0 || expenses.ProfitMargin > 1 {
+			return fmt.Errorf("profit margin must be between 0 and 1")
+		}
+	}
+	if policy.AnnuityLoading != nil && (*policy.AnnuityLoading < 0 || *policy.AnnuityLoading > 5) {
+		return fmt.Errorf("annuity loading must be between 0 and 5")
+	}
 	return nil
 }
 
 func (s *ActuarialService) convertToActuarialPolicy(policy *models.Policy) actuarial.Policy {
+	var expenses *actuarial.ExpenseStructure
+	if policy.Expenses != nil {
+		expenses = &actuarial.ExpenseStructure{
+			InitialExpenseRate: policy.Expenses.InitialExpenseRate,
+			RenewalExpenseRate: policy.Expenses.RenewalExpenseRate,
+			MaintenanceExpense: policy.Expenses.MaintenanceExpense,
+			ProfitMargin:       policy.Expenses.ProfitMargin,
+		}
+	}
+
 	return actuarial.Policy{
 		Age:            policy.Age,
 		Term:           policy.Term,
@@ -271,6 +302,8 @@ func (s *ActuarialService) convertToActuarialPolicy(policy *models.Policy) actua
 		HealthRating:   policy.HealthRating,
 		RatingFactor:   policy.RatingFactor,
 		DeferralPeriod: policy.DeferralPeriod,
+		Expenses:       expenses,
+		AnnuityLoading: policy.AnnuityLoading,
 	}
 }
 

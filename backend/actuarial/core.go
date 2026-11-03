@@ -18,28 +18,30 @@ type MortalityTable []float64
 
 // Policy represents a person's insurance policy details
 type Policy struct {
-	Age            int     `json:"age"`            // How old is the person?
-	Term           int     `json:"term"`           // How many years will the policy last?
-	CoverageAmount float64 `json:"sum_assured"`    // How much money paid if person dies?
-	InterestRate   float64 `json:"interest_rate"`  // Interest rate for calculations (e.g., 0.05 for 5%)
-	Gender         string  `json:"table_name"`     // Male or Female (affects death rates)
-	ProductType    string  `json:"product_type"`   // Type of insurance: "term_life" or "whole_life"
-	SmokerStatus   string  `json:"smoker_status,omitempty"`   // Does person smoke? Affects risk
-	HealthRating   string  `json:"health_rating,omitempty"`   // Health status: "standard", "substandard", "preferred"
-	RatingFactor   float64 `json:"rating_factor,omitempty"`   // Risk multiplier (1.0 = normal risk)
-	DeferralPeriod int     `json:"deferral_period,omitempty"` // For annuities: years to wait before payments
+	Age            int               `json:"age"`                       // How old is the person?
+	Term           int               `json:"term"`                      // How many years will the policy last?
+	CoverageAmount float64           `json:"sum_assured"`               // How much money paid if person dies?
+	InterestRate   float64           `json:"interest_rate"`             // Interest rate for calculations (e.g., 0.05 for 5%)
+	Gender         string            `json:"table_name"`                // Male or Female (affects death rates)
+	ProductType    string            `json:"product_type"`              // Type of insurance: "term_life" or "whole_life"
+	SmokerStatus   string            `json:"smoker_status,omitempty"`   // Does person smoke? Affects risk
+	HealthRating   string            `json:"health_rating,omitempty"`   // Health status: "standard", "substandard", "preferred"
+	RatingFactor   float64           `json:"rating_factor,omitempty"`   // Risk multiplier (1.0 = normal risk)
+	DeferralPeriod int               `json:"deferral_period,omitempty"` // For annuities: years to wait before payments
+	Expenses       *ExpenseStructure `json:"expenses,omitempty"`        // Optional expense assumptions
+	AnnuityLoading *float64          `json:"annuity_loading,omitempty"` // Optional gross-up for annuity premiums
 }
 
 type PremiumCalculation struct {
-	NetPremium        float64            `json:"net_premium"`
-	GrossPremium      float64            `json:"gross_premium"`
-	ReserveSchedule   []float64          `json:"reserve_schedule"`
-	ProductType       string             `json:"product_type"`
-	ExpenseDetails    map[string]float64 `json:"expenses,omitempty"`
-	AnnualPayout      float64            `json:"annual_payout,omitempty"`      // For annuities
-	TotalPremiumCost  float64            `json:"total_premium_cost,omitempty"` // For annuities
-	UnderwritingInfo  map[string]interface{} `json:"underwriting,omitempty"`
-	RiskAssessment    map[string]float64 `json:"risk_assessment,omitempty"`
+	NetPremium       float64                `json:"net_premium"`
+	GrossPremium     float64                `json:"gross_premium"`
+	ReserveSchedule  []float64              `json:"reserve_schedule"`
+	ProductType      string                 `json:"product_type"`
+	ExpenseDetails   map[string]float64     `json:"expenses,omitempty"`
+	AnnualPayout     float64                `json:"annual_payout,omitempty"`      // For annuities
+	TotalPremiumCost float64                `json:"total_premium_cost,omitempty"` // For annuities
+	UnderwritingInfo map[string]interface{} `json:"underwriting,omitempty"`
+	RiskAssessment   map[string]float64     `json:"risk_assessment,omitempty"`
 }
 
 type ExpenseStructure struct {
@@ -61,8 +63,8 @@ func LoadMortalityTable(filePath string) (MortalityTable, error) {
 
 	// Setup CSV reader for tab-delimited files
 	csvReader := csv.NewReader(file)
-	csvReader.FieldsPerRecord = -1  // Allow variable number of fields
-	csvReader.Comma = '\t'           // Tab-delimited
+	csvReader.FieldsPerRecord = -1 // Allow variable number of fields
+	csvReader.Comma = '\t'         // Tab-delimited
 
 	// Skip the header row
 	_, err = csvReader.Read()
@@ -85,7 +87,7 @@ func LoadMortalityTable(filePath string) (MortalityTable, error) {
 		if len(row) > 2 {
 			deathRateText := strings.TrimSpace(row[2])
 			deathRate, err := strconv.ParseFloat(deathRateText, 64)
-			
+
 			// If column 3 fails, try column 2 (some formats differ)
 			if err != nil {
 				deathRateText = strings.TrimSpace(row[1])
@@ -107,7 +109,7 @@ func LoadMortalityTable(filePath string) (MortalityTable, error) {
 func CalculatePresentValue(futureAmount float64, interestRate float64, numberOfYears int) float64 {
 	// How much the money grows over time
 	growthFactor := math.Pow(1+interestRate, float64(numberOfYears))
-	
+
 	// Divide to get today's value
 	todaysValue := futureAmount / growthFactor
 	return todaysValue
@@ -130,7 +132,7 @@ func CalculateTermLifeNetPremium(policy *Policy, mortalityTable MortalityTable) 
 	// Calculate for each year of the policy term
 	for yearOfPolicy := 0; yearOfPolicy < policy.Term; yearOfPolicy++ {
 		personAge := policy.Age + yearOfPolicy
-		
+
 		// Stop if we run out of mortality data
 		if personAge >= len(mortalityTable) {
 			break
@@ -138,10 +140,10 @@ func CalculateTermLifeNetPremium(policy *Policy, mortalityTable MortalityTable) 
 
 		// Calculate chance person is still alive at start of this year
 		chanceStillAlive := calculateSurvivalProbability(policy.Age, yearOfPolicy, mortalityTable)
-		
+
 		// Get chance of dying this specific year
 		chanceOfDyingThisYear := mortalityTable[personAge]
-		
+
 		// Calculate present values (what future money is worth today)
 		deathPayoutToday := CalculatePresentValue(policy.CoverageAmount, policy.InterestRate, yearOfPolicy+1)
 		premiumToday := CalculatePresentValue(1.0, policy.InterestRate, yearOfPolicy)
@@ -149,7 +151,7 @@ func CalculateTermLifeNetPremium(policy *Policy, mortalityTable MortalityTable) 
 		// Add to our running totals
 		// Expected payout = chance alive * chance of dying * payout amount
 		expectedPayouts += chanceStillAlive * chanceOfDyingThisYear * deathPayoutToday
-		
+
 		// Expected premium = chance alive * premium unit
 		expectedPremiumsCollected += chanceStillAlive * premiumToday
 	}
@@ -164,7 +166,7 @@ func CalculateTermLifeNetPremium(policy *Policy, mortalityTable MortalityTable) 
 // calculateSurvivalProbability calculates the chance someone survives to a certain year
 func calculateSurvivalProbability(startAge int, yearsLater int, mortalityTable MortalityTable) float64 {
 	survivalChance := 1.0
-	
+
 	// Multiply survival chances for each year
 	for year := 0; year < yearsLater; year++ {
 		ageThisYear := startAge + year
@@ -172,7 +174,7 @@ func calculateSurvivalProbability(startAge int, yearsLater int, mortalityTable M
 		chanceOfSurviving := 1.0 - chanceOfDying
 		survivalChance *= chanceOfSurviving
 	}
-	
+
 	return survivalChance
 }
 
@@ -191,14 +193,14 @@ func CalculateWholeLifeNetPremium(policy *Policy, mortalityTable MortalityTable)
 	// Calculate expected costs and premiums year by year
 	for yearOfPolicy := 0; yearOfPolicy < yearsOfCoverage; yearOfPolicy++ {
 		personAge := policy.Age + yearOfPolicy
-		
+
 		if personAge >= len(mortalityTable) {
 			break // No more data
 		}
 
 		// What's the chance person is still alive this year?
 		chanceStillAlive := calculateSurvivalProbability(policy.Age, yearOfPolicy, mortalityTable)
-		
+
 		// Death benefit calculation (same as term life)
 		chanceOfDyingThisYear := mortalityTable[personAge]
 		deathPayoutToday := CalculatePresentValue(policy.CoverageAmount, policy.InterestRate, yearOfPolicy+1)
@@ -222,24 +224,26 @@ func CalculateWholeLifeNetPremium(policy *Policy, mortalityTable MortalityTable)
 // These cover costs like sales commissions, admin, and profit.
 func CreateDefaultExpenses() ExpenseStructure {
 	return ExpenseStructure{
-		InitialExpenseRate: 0.03,  // 3% of coverage for setting up policy
-		RenewalExpenseRate: 0.05,  // 5% of premium for ongoing commission
-		MaintenanceExpense: 50.0,   // $50/year for admin costs
-		ProfitMargin:       0.15,   // 15% profit margin
+		InitialExpenseRate: 0.03, // 3% of coverage for setting up policy
+		RenewalExpenseRate: 0.05, // 5% of premium for ongoing commission
+		MaintenanceExpense: 50.0, // $50/year for admin costs
+		ProfitMargin:       0.15, // 15% profit margin
 	}
 }
 
 // CalculateGrossPremium adds company expenses and profit to the net premium.
 // Net premium = pure cost of death benefit
 // Gross premium = what customer actually pays (includes expenses + profit)
-func CalculateGrossPremium(policy *Policy, mortalityTable MortalityTable, netPremium float64, expenses ExpenseStructure) float64 {
-	// One-time setup costs spread over policy term
+func CalculateGrossPremium(policy *Policy, mortalityTable MortalityTable, netPremium float64, expenses ExpenseStructure) float64 { // One-time setup costs spread over policy term
 	setupCost := policy.CoverageAmount * expenses.InitialExpenseRate
-	setupCostPerYear := setupCost / float64(policy.Term)
-	
+	setupCostPerYear := 0.0
+	if policy.Term > 0 {
+		setupCostPerYear = setupCost / float64(policy.Term)
+	}
+
 	// Profit the company wants to make
 	profitAmount := netPremium * expenses.ProfitMargin
-	
+
 	// Start with net premium plus profit
 	grossPremium := netPremium + profitAmount
 
@@ -446,12 +450,20 @@ func AssessRisk(policy *Policy, mortalityTable MortalityTable) map[string]float6
 	adjustedRate := adjustedTable[policy.Age]
 
 	return map[string]float64{
-		"base_mortality_rate":     baseRate,
-		"adjusted_mortality_rate": adjustedRate,
-		"risk_multiplier":         adjustedRate / baseRate,
+		"base_mortality_rate":      baseRate,
+		"adjusted_mortality_rate":  adjustedRate,
+		"risk_multiplier":          adjustedRate / baseRate,
 		"annual_death_probability": adjustedRate,
 		"expected_lifetime_years":  1.0 / adjustedRate,
 	}
+}
+
+// annuityLoading returns the gross-up applied to annuity single premiums.
+func annuityLoading(policy *Policy) float64 {
+	if policy.AnnuityLoading != nil {
+		return *policy.AnnuityLoading
+	}
+	return 0.10
 }
 
 func CalculateFullPremium(policy *Policy, mortalityTable MortalityTable) PremiumCalculation {
@@ -490,7 +502,7 @@ func CalculateFullPremium(policy *Policy, mortalityTable MortalityTable) Premium
 		result.TotalPremiumCost = premiumCost
 		result.AnnualPayout = policy.CoverageAmount
 		result.NetPremium = premiumCost
-		result.GrossPremium = premiumCost * 1.1 // Simple 10% loading for annuities
+		result.GrossPremium = premiumCost * (1 + annuityLoading(policy))
 		return result
 
 	case "deferred_annuity":
@@ -498,13 +510,16 @@ func CalculateFullPremium(policy *Policy, mortalityTable MortalityTable) Premium
 		result.TotalPremiumCost = premiumCost
 		result.AnnualPayout = policy.CoverageAmount
 		result.NetPremium = premiumCost
-		result.GrossPremium = premiumCost * 1.1 // Simple 10% loading for annuities
+		result.GrossPremium = premiumCost * (1 + annuityLoading(policy))
 		return result
 
 	default:
 		// Life insurance calculations
 		netPremium := CalculateNetPremium(policy, adjustedMortalityTable)
 		expenseAssumptions := CreateDefaultExpenses()
+		if policy.Expenses != nil {
+			expenseAssumptions = *policy.Expenses
+		}
 		grossPremium := CalculateGrossPremium(policy, adjustedMortalityTable, netPremium, expenseAssumptions)
 		reserveSchedule := CalculateReserveSchedule(policy, adjustedMortalityTable, netPremium)
 
@@ -522,4 +537,3 @@ func CalculateFullPremium(policy *Policy, mortalityTable MortalityTable) Premium
 		return result
 	}
 }
-

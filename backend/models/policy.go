@@ -2,16 +2,18 @@ package models
 
 // Policy represents a life insurance policy
 type Policy struct {
-	Age            int     `json:"age" validate:"min=0,max=120"`
-	Term           int     `json:"term" validate:"min=0"`
-	CoverageAmount float64 `json:"sum_assured" validate:"min=0"`
-	InterestRate   float64 `json:"interest_rate" validate:"min=0,max=1"`
-	Gender         string  `json:"table_name"`
-	ProductType    string  `json:"product_type"`
-	SmokerStatus   string  `json:"smoker_status,omitempty"`
-	HealthRating   string  `json:"health_rating,omitempty"`
-	RatingFactor   float64 `json:"rating_factor,omitempty"`
-	DeferralPeriod int     `json:"deferral_period,omitempty"`
+	Age            int               `json:"age" validate:"min=0,max=120"`
+	Term           int               `json:"term" validate:"min=0"`
+	CoverageAmount float64           `json:"sum_assured" validate:"min=0"`
+	InterestRate   float64           `json:"interest_rate" validate:"min=0,max=1"`
+	Gender         string            `json:"table_name"`
+	ProductType    string            `json:"product_type"`
+	SmokerStatus   string            `json:"smoker_status,omitempty"`
+	HealthRating   string            `json:"health_rating,omitempty"`
+	RatingFactor   float64           `json:"rating_factor,omitempty"`
+	DeferralPeriod int               `json:"deferral_period,omitempty"`
+	Expenses       *ExpenseStructure `json:"expenses,omitempty"`
+	AnnuityLoading *float64          `json:"annuity_loading,omitempty"`
 }
 
 // PremiumCalculation contains the results of premium calculations
@@ -63,7 +65,7 @@ type SensitivityResult struct {
 
 // SensitivityAnalysisResponse contains full sensitivity analysis results
 type SensitivityAnalysisResponse struct {
-	BaseResult PremiumCalculation        `json:"base_result"`
+	BaseResult PremiumCalculation             `json:"base_result"`
 	Analysis   map[string][]SensitivityResult `json:"analysis"`
 }
 

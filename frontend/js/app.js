@@ -21,9 +21,18 @@ function actuarialApp() {
       interest_rate: 5,
       smoker_status: '',
       health_rating: '',
+      rating_factor: 0,
       deferral_period: 10,
     },
     premium: null,
+
+    expenses: {
+      initial_expense_rate: 3,
+      renewal_expense_rate: 5,
+      maintenance_expense: 50,
+      profit_margin: 15,
+    },
+    annuityLoading: 10,
 
     pv: { amount: 100000, years: 20, rate: 5 },
     pvResult: null,
@@ -68,7 +77,16 @@ function actuarialApp() {
         method: 'POST',
         path: '/api/calculate',
         desc: 'Premium and reserve schedule',
-        body: { age: 35, term: 20, sum_assured: 100000, interest_rate: 0.05, table_name: 'male', product_type: 'term_life' },
+        body: {
+          age: 35,
+          term: 20,
+          sum_assured: 100000,
+          interest_rate: 0.05,
+          table_name: 'male',
+          product_type: 'term_life',
+          expenses: { initial_expense_rate: 0.03, renewal_expense_rate: 0.05, maintenance_expense: 50, profit_margin: 0.15 },
+          annuity_loading: 0.10,
+        },
       },
       {
         id: 'batch',
@@ -250,9 +268,27 @@ function actuarialApp() {
         this.premium = await this.post('/api/calculate', {
           ...this.policy,
           interest_rate: this.policy.interest_rate / 100,
+          annuity_loading: this.annuityLoading / 100,
+          expenses: {
+            initial_expense_rate: this.expenses.initial_expense_rate / 100,
+            renewal_expense_rate: this.expenses.renewal_expense_rate / 100,
+            maintenance_expense: this.expenses.maintenance_expense,
+            profit_margin: this.expenses.profit_margin / 100,
+          },
         });
         this.$nextTick(() => this.renderReserveChart());
       });
+    },
+
+    resetAssumptions() {
+      this.expenses = {
+        initial_expense_rate: 3,
+        renewal_expense_rate: 5,
+        maintenance_expense: 50,
+        profit_margin: 15,
+      };
+      this.annuityLoading = 10;
+      this.policy.rating_factor = 0;
     },
 
     calculatePV() {
@@ -271,6 +307,7 @@ function actuarialApp() {
           term: this.annuity.deferral + 20,
           deferral_period: this.annuity.deferral,
           interest_rate: this.annuity.rate / 100,
+          annuity_loading: this.annuityLoading / 100,
         });
       });
     },
