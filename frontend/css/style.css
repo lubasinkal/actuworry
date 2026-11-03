@@ -498,6 +498,44 @@ legend {
   font-size: 11px;
 }
 
+.assumption-block {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card-2);
+}
+
+.assumption-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.assumption-head span {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.link-btn {
+  color: var(--dim);
+  font-size: 11px;
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+
+.link-btn:hover {
+  color: var(--amber);
+}
+
+.assumption-block .field-row:first-of-type {
+  margin-top: 0;
+}
+
 .assumptions {
   margin-top: 16px;
   padding-top: 12px;

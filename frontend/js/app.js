@@ -280,14 +280,16 @@ function actuarialApp() {
       });
     },
 
-    resetAssumptions() {
+    resetExpenses() {
       this.expenses = {
         initial_expense_rate: 3,
         renewal_expense_rate: 5,
         maintenance_expense: 50,
         profit_margin: 15,
       };
-      this.annuityLoading = 10;
+    },
+
+    resetRating() {
       this.policy.rating_factor = 0;
     },
 

@@ -123,39 +123,47 @@
             <input id="premium-deferral" type="number" min="0" max="100" x-model.number="policy.deferral_period">
           </div>
 
+          <div class="assumption-block" x-show="!policy.product_type.includes('annuity')">
+            <div class="assumption-head">
+              <span>Expenses &amp; profit</span>
+              <button type="button" class="link-btn" @click="resetExpenses">Reset</button>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="exp-initial">Initial (% of cover)</label>
+                <input id="exp-initial" type="number" min="0" max="100" step="0.1" x-model.number="expenses.initial_expense_rate">
+              </div>
+              <div class="field">
+                <label for="exp-renewal">Renewal (% of premium)</label>
+                <input id="exp-renewal" type="number" min="0" max="100" step="0.1" x-model.number="expenses.renewal_expense_rate">
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="exp-maintenance">Maintenance (BWP/year)</label>
+                <input id="exp-maintenance" type="number" min="0" step="10" x-model.number="expenses.maintenance_expense">
+              </div>
+              <div class="field">
+                <label for="exp-profit">Profit margin (%)</label>
+                <input id="exp-profit" type="number" min="0" max="100" step="0.1" x-model.number="expenses.profit_margin">
+              </div>
+            </div>
+          </div>
+
+          <div class="field" x-show="policy.product_type.includes('annuity')">
+            <label for="annuity-loading">Annuity loading (%)</label>
+            <input id="annuity-loading" type="number" min="0" max="500" step="0.1" x-model.number="annuityLoading">
+          </div>
+
           <details class="assumptions">
-            <summary>Assumptions</summary>
+            <summary>Advanced</summary>
             <div class="assumptions-body">
-              <div class="field-row">
-                <div class="field">
-                  <label for="exp-initial">Initial expense (% of cover)</label>
-                  <input id="exp-initial" type="number" min="0" max="100" step="0.1" x-model.number="expenses.initial_expense_rate">
-                </div>
-                <div class="field">
-                  <label for="exp-renewal">Renewal (% of premium)</label>
-                  <input id="exp-renewal" type="number" min="0" max="100" step="0.1" x-model.number="expenses.renewal_expense_rate">
-                </div>
-              </div>
-              <div class="field-row">
-                <div class="field">
-                  <label for="exp-maintenance">Maintenance (BWP/year)</label>
-                  <input id="exp-maintenance" type="number" min="0" step="10" x-model.number="expenses.maintenance_expense">
-                </div>
-                <div class="field">
-                  <label for="exp-profit">Profit margin (%)</label>
-                  <input id="exp-profit" type="number" min="0" max="100" step="0.1" x-model.number="expenses.profit_margin">
-                </div>
-              </div>
-              <div class="field" x-show="policy.product_type.includes('annuity')">
-                <label for="annuity-loading">Annuity loading (%)</label>
-                <input id="annuity-loading" type="number" min="0" max="500" step="0.1" x-model.number="annuityLoading">
-              </div>
               <div class="field">
                 <label for="rating-factor">Rating factor (0 = auto)</label>
                 <input id="rating-factor" type="number" min="0" max="10" step="0.05" x-model.number="policy.rating_factor">
                 <p class="hint">Overrides smoker and health when above 0.</p>
               </div>
-              <button type="button" class="btn btn-ghost btn-sm" @click="resetAssumptions">Reset defaults</button>
+              <button type="button" class="btn btn-ghost btn-sm" @click="resetRating">Reset</button>
             </div>
           </details>
 
