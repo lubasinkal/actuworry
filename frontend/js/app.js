@@ -3,6 +3,7 @@ const AMBER = '#e8912a';
 const MUTE = '#8a8e96';
 const DIM = '#5d6168';
 const LINE = '#1f2125';
+const REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const charts = {};
 
 function actuarialApp() {
@@ -42,9 +43,130 @@ function actuarialApp() {
     rates: { nominal: 5, compounding: 12 },
     rateResult: null,
 
+    dataOpen: false,
+    dataLoading: false,
+    dataError: '',
+    dataTables: [],
+
+    api: {
+      selectedId: 'health',
+      loading: false,
+      touched: false,
+      requestId: 0,
+      response: '',
+      status: '',
+      ok: false,
+      error: '',
+      copied: false,
+    },
+
+    apiEndpoints: [
+      { id: 'health', method: 'GET', path: '/api/health', desc: 'Service status' },
+      { id: 'tables', method: 'GET', path: '/api/tables', desc: 'Loaded mortality tables' },
+      {
+        id: 'calculate',
+        method: 'POST',
+        path: '/api/calculate',
+        desc: 'Premium and reserve schedule',
+        body: { age: 35, term: 20, sum_assured: 100000, interest_rate: 0.05, table_name: 'male', product_type: 'term_life' },
+      },
+      {
+        id: 'batch',
+        method: 'POST',
+        path: '/api/calculate/batch',
+        desc: 'Many policies at once',
+        body: {
+          policies: [
+            { age: 35, term: 20, sum_assured: 100000, interest_rate: 0.05, table_name: 'male', product_type: 'term_life' },
+            { age: 42, term: 15, sum_assured: 250000, interest_rate: 0.05, table_name: 'female', product_type: 'whole_life' },
+          ],
+        },
+      },
+      {
+        id: 'sensitivity',
+        method: 'POST',
+        path: '/api/calculate/sensitivity',
+        desc: 'One policy, varied inputs',
+        body: {
+          base_policy: { age: 35, term: 20, sum_assured: 100000, interest_rate: 0.05, table_name: 'male', product_type: 'term_life' },
+          interest_rates: [0.03, 0.05, 0.07],
+          ages: [30, 40, 50],
+          coverage_amounts: [50000, 100000, 150000],
+        },
+      },
+      {
+        id: 'portfolio',
+        method: 'POST',
+        path: '/api/analyze/portfolio',
+        desc: 'Portfolio summary',
+        body: {
+          policies: [
+            { age: 35, term: 20, sum_assured: 100000, interest_rate: 0.05, table_name: 'male', product_type: 'term_life' },
+            { age: 42, term: 15, sum_assured: 250000, interest_rate: 0.05, table_name: 'female', product_type: 'whole_life' },
+          ],
+        },
+      },
+      {
+        id: 'montecarlo',
+        method: 'POST',
+        path: '/api/vstar/montecarlo',
+        desc: 'Simulated loss distribution',
+        body: { num_paths: 1000, drift: 0.02, volatility: 0.15, seed: 42 },
+      },
+      {
+        id: 'risk',
+        method: 'POST',
+        path: '/api/vstar/risk',
+        desc: 'VaR and CTE',
+        body: { losses: [100, 250, 180, 420, 95, 310, 200, 150, 280, 175, 320, 90, 450] },
+      },
+      {
+        id: 'reserve-retro',
+        method: 'POST',
+        path: '/api/vstar/reserve-retro',
+        desc: 'Reserve at a policy year',
+        body: {
+          policy: { age: 35, term: 20, sum_assured: 100000, interest_rate: 0.05, table_name: 'male', product_type: 'term_life' },
+          year: 10,
+        },
+      },
+      {
+        id: 'rate-convert',
+        method: 'POST',
+        path: '/api/vstar/rate-convert',
+        desc: 'Nominal, effective, force',
+        body: { nominal_rate: 0.05, compounding: 12 },
+      },
+      {
+        id: 'duration',
+        method: 'POST',
+        path: '/api/vstar/duration',
+        desc: 'Duration and convexity',
+        body: { cash_flows: [100, 100, 100, 1100], rate: 0.05 },
+      },
+      {
+        id: 'endowment',
+        method: 'POST',
+        path: '/api/vstar/endowment',
+        desc: 'Endowment single premium',
+        body: { age: 35, term: 20, sum_assured: 100000, rate: 0.05 },
+      },
+      {
+        id: 'bond',
+        method: 'POST',
+        path: '/api/vstar/bond',
+        desc: 'Bond price and duration',
+        body: { face_value: 1000, coupon_rate: 0.06, years: 10, yield_to_maturity: 0.05 },
+      },
+    ],
+
+    get apiSelected() {
+      return this.apiEndpoints.find((endpoint) => endpoint.id === this.api.selectedId) || this.apiEndpoints[0];
+    },
+
     init() {
       if (window.Chart) {
-        Chart.defaults.font.family = "Geist, system-ui, sans-serif";
+        Chart.defaults.font.family = 'Geist, system-ui, sans-serif';
         Chart.defaults.color = MUTE;
       }
     },
@@ -53,8 +175,8 @@ function actuarialApp() {
       this.tab = id;
       this.error = '';
       this.$nextTick(() => {
-        if (id === 'benchmarks') this.renderPerfChart();
-        Object.values(charts).forEach((c) => c.resize());
+        if (id === 'api' && !this.api.touched) this.apiSend();
+        Object.values(charts).forEach((chart) => chart.resize());
       });
     },
 
@@ -135,8 +257,7 @@ function actuarialApp() {
 
     calculatePV() {
       this.error = '';
-      const factor = this.discountFactor();
-      this.pvResult = this.pv.amount * factor;
+      this.pvResult = this.pv.amount * this.discountFactor();
       this.$nextTick(() => this.renderPVChart());
     },
 
@@ -212,25 +333,132 @@ function actuarialApp() {
       });
     },
 
+    // Data modal
+    openData() {
+      this.dataOpen = true;
+      document.body.classList.add('no-scroll');
+      this.loadTables();
+    },
+
+    closeData() {
+      this.dataOpen = false;
+      document.body.classList.remove('no-scroll');
+    },
+
+    async loadTables() {
+      if (this.dataLoading || this.dataTables.length) return;
+      this.dataLoading = true;
+      this.dataError = '';
+      try {
+        const response = await fetch('/api/tables');
+        if (!response.ok) throw new Error('Could not load tables.');
+        const data = await response.json();
+        this.dataTables = data.tables || [];
+      } catch (e) {
+        this.dataError = e.message || 'Could not load tables.';
+      } finally {
+        this.dataLoading = false;
+      }
+    },
+
+    // API explorer
+    selectEndpoint(id) {
+      this.api.selectedId = id;
+      this.api.requestId += 1;
+      this.api.loading = false;
+      this.api.response = '';
+      this.api.status = '';
+      this.api.ok = false;
+      this.api.error = '';
+      this.api.touched = true;
+    },
+
+    apiBody() {
+      const endpoint = this.apiSelected;
+      return endpoint && endpoint.body ? JSON.stringify(endpoint.body, null, 2) : '';
+    },
+
+    async apiSend() {
+      if (this.api.loading) return;
+      const endpoint = this.apiSelected;
+      const requestId = ++this.api.requestId;
+      this.api.loading = true;
+      this.api.touched = true;
+      this.api.error = '';
+      this.api.response = '';
+      this.api.status = '';
+
+      const started = Date.now();
+      try {
+        const response = await fetch(endpoint.path, {
+          method: endpoint.method,
+          headers: endpoint.body ? { 'Content-Type': 'application/json' } : undefined,
+          body: endpoint.body ? JSON.stringify(endpoint.body) : undefined,
+        });
+
+        const text = await response.text();
+        if (requestId !== this.api.requestId) return;
+
+        let pretty = text || '(empty response)';
+        try {
+          pretty = JSON.stringify(JSON.parse(text), null, 2);
+        } catch (e) {
+          // keep raw text
+        }
+
+        this.api.response = pretty;
+        this.api.ok = response.ok;
+        this.api.status = response.status + ' ' + response.statusText + ' · ' + (Date.now() - started) + 'ms';
+      } catch (e) {
+        if (requestId === this.api.requestId) this.api.error = 'Server unreachable';
+      } finally {
+        if (requestId === this.api.requestId) this.api.loading = false;
+      }
+    },
+
+    curlText() {
+      const endpoint = this.apiSelected;
+      const body = endpoint.body
+        ? " -H 'Content-Type: application/json' -d '" + JSON.stringify(endpoint.body) + "'"
+        : '';
+      return 'curl -X ' + endpoint.method + ' ' + window.location.origin + endpoint.path + body;
+    },
+
+    async copyCurl() {
+      const copied = await this.copyText(this.curlText());
+      if (!copied) return;
+      this.api.copied = true;
+      setTimeout(() => {
+        this.api.copied = false;
+      }, 1400);
+    },
+
+    async copyText(text) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (e) {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        let copied = false;
+        try {
+          copied = document.execCommand('copy');
+        } catch (err) {
+          copied = false;
+        }
+        area.remove();
+        return copied;
+      }
+    },
+
+    // Charts
     renderReserveChart() {
       if (!this.premium || !this.premium.reserve_schedule) return;
-      const values = this.premium.reserve_schedule;
-      drawChart('reserve', 'reserveChart', {
-        type: 'line',
-        data: {
-          labels: values.map((_, i) => i),
-          datasets: [{
-            data: values,
-            borderColor: AMBER,
-            backgroundColor: 'rgba(232, 145, 42, 0.08)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 0,
-            borderWidth: 1.5,
-          }],
-        },
-        options: lineOptions(),
-      });
+      drawChart('reserve', 'reserveChart', lineChart(this.premium.reserve_schedule));
     },
 
     renderPVChart() {
@@ -241,42 +469,11 @@ function actuarialApp() {
         labels.push(i);
         data.push(this.pv.amount * Math.pow(1 + this.pv.rate / 100, -i));
       }
-      drawChart('pv', 'pvChart', {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            data,
-            borderColor: AMBER,
-            backgroundColor: 'rgba(232, 145, 42, 0.08)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 0,
-            borderWidth: 1.5,
-          }],
-        },
-        options: lineOptions(),
-      });
+      drawChart('pv', 'pvChart', lineChart(data, labels));
     },
 
     renderReserveScheduleChart() {
-      const values = this.reserveSchedule || [];
-      drawChart('reserveSchedule', 'reserveScheduleChart', {
-        type: 'line',
-        data: {
-          labels: values.map((_, i) => i),
-          datasets: [{
-            data: values,
-            borderColor: AMBER,
-            backgroundColor: 'rgba(232, 145, 42, 0.08)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 0,
-            borderWidth: 1.5,
-          }],
-        },
-        options: lineOptions(),
-      });
+      drawChart('reserveSchedule', 'reserveScheduleChart', lineChart(this.reserveSchedule || []));
     },
 
     renderMCChart() {
@@ -336,49 +533,25 @@ function actuarialApp() {
         options: barOptions(true),
       });
     },
+  };
+}
 
-    renderPerfChart() {
-      drawChart('perf', 'perfChart', {
-        type: 'bar',
-        data: {
-          labels: ['Go + v-star', 'Python', 'R', 'Excel VBA', 'Excel'],
-          datasets: [{
-            data: [28000000, 500000, 100000, 50000, 1000000],
-            backgroundColor: [AMBER, '#3a3e45', '#3a3e45', '#3a3e45', '#3a3e45'],
-            borderRadius: 4,
-            maxBarThickness: 28,
-          }],
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: {
-              type: 'logarithmic',
-              grid: { color: LINE },
-              border: { display: false },
-              ticks: {
-                color: MUTE,
-                font: { size: 11 },
-                callback: (value) => {
-                  if (value >= 1000000) return value / 1000000 + 'M';
-                  if (value >= 1000) return value / 1000 + 'K';
-                  return value;
-                },
-              },
-            },
-            y: {
-              grid: { display: false },
-              border: { display: false },
-              ticks: { color: MUTE, font: { size: 11 } },
-            },
-          },
-        },
-      });
+function lineChart(data, labels) {
+  return {
+    type: 'line',
+    data: {
+      labels: labels || data.map((_, i) => i),
+      datasets: [{
+        data,
+        borderColor: AMBER,
+        backgroundColor: 'rgba(232, 145, 42, 0.08)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: 0,
+        borderWidth: 1.5,
+      }],
     },
+    options: lineOptions(),
   };
 }
 
@@ -389,22 +562,22 @@ function drawChart(key, canvasId, config) {
   charts[key] = new Chart(canvas, config);
 }
 
+function tooltipMoney(context) {
+  return 'BWP ' + Number(context.parsed.y).toLocaleString('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function lineOptions() {
   return {
     responsive: true,
     maintainAspectRatio: false,
-    animation: false,
+    animation: REDUCED ? false : { duration: 350, easing: 'easeOutQuart' },
     interaction: { intersect: false, mode: 'index' },
     plugins: {
       legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (context) => 'BWP ' + Number(context.parsed.y).toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          }),
-        },
-      },
+      tooltip: { callbacks: { label: tooltipMoney } },
     },
     scales: {
       x: {
@@ -425,7 +598,7 @@ function barOptions(percent = false) {
   return {
     responsive: true,
     maintainAspectRatio: false,
-    animation: false,
+    animation: REDUCED ? false : { duration: 350, easing: 'easeOutQuart' },
     plugins: {
       legend: { display: false },
       tooltip: {

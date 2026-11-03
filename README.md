@@ -2,6 +2,8 @@
 
 Life insurance pricing, valuation and reserving for the Botswana market. Go backend, static frontend, no build step.
 
+The demo uses UK National Life Tables 2021–2023 (ONS) as a reference mortality basis, not Botswana-specific experience.
+
 Live demo: https://actuworry.onrender.com
 
 ## Run

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0e0f11">
-  <meta name="description" content="Actuworry — life insurance pricing, valuation and reserving calculations in the browser, powered by Go and the v-star engine.">
+  <meta name="description" content="Actuworry — life insurance pricing, valuation and reserving calculations in the browser.">
   <title>Actuworry — Actuarial calculations</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,17 +16,10 @@
   <script defer src="/js/app.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.17.5/dist/cdn.min.js"></script>
 </head>
-<body x-data="actuarialApp()">
+<body x-data="actuarialApp()" @keydown.escape.window="closeData()">
   <header class="site-header">
     <div class="wrap header-inner">
-      <a class="brand" href="/" aria-label="Actuworry home">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-            <path d="M5 19V9M12 19V5M19 19v-6"/>
-          </svg>
-        </span>
-        actuworry
-      </a>
+      <a class="brand" href="/">actuworry</a>
 
       <nav class="tabs" aria-label="Calculators">
         <button type="button" class="tab" :class="{ 'is-active': tab === 'premium' }" @click="setTab('premium')">Premium</button>
@@ -35,126 +28,119 @@
         <button type="button" class="tab" :class="{ 'is-active': tab === 'simulation' }" @click="setTab('simulation')">Simulation</button>
         <button type="button" class="tab" :class="{ 'is-active': tab === 'risk' }" @click="setTab('risk')">Risk</button>
         <button type="button" class="tab" :class="{ 'is-active': tab === 'rates' }" @click="setTab('rates')">Rates</button>
-        <button type="button" class="tab" :class="{ 'is-active': tab === 'benchmarks' }" @click="setTab('benchmarks')">Benchmarks</button>
+        <button type="button" class="tab" :class="{ 'is-active': tab === 'api' }" @click="setTab('api')">API</button>
       </nav>
 
-      <a class="header-link" href="/api/health" target="_blank" rel="noreferrer">API</a>
+      <button type="button" class="header-link" @click="openData">Data</button>
     </div>
   </header>
 
   <section class="hero">
     <div class="wrap">
-      <p class="eyebrow">Life insurance · Botswana</p>
-      <h1>Actuarial calculations, <em>without the spreadsheet.</em></h1>
-      <p>Price term and whole life policies, value annuities, and stress-test reserves against real mortality tables — right in the browser.</p>
+      <h1>Price it. Reserve it. <em>Stress it.</em></h1>
+      <p>Life insurance calculations in the browser. No spreadsheets.</p>
       <div class="hero-meta">
-        <span>Go + v-star engine</span>
-        <span>Mortality table driven</span>
-        <span>No third-party data sharing</span>
+        <span>Go + v-star</span>
+        <span>UK NLT 2021–23</span>
+        <button type="button" class="meta-link" @click="openData">Data &amp; assumptions</button>
       </div>
     </div>
   </section>
 
   <main class="wrap">
     <!-- Premium -->
-    <section class="panel" x-show="tab === 'premium'">
+    <section class="panel" x-show="tab === 'premium'"
+      x-transition:enter="panel-enter" x-transition:enter-start="panel-enter-start" x-transition:enter-end="panel-enter-end">
       <div class="section-head">
-        <div>
-          <h2>Premium calculator</h2>
-          <p>Net and gross premiums from the equivalence principle, with expense loadings.</p>
-        </div>
-        <span class="badge">Term / whole life / annuity</span>
+        <h2>Premium</h2>
+        <span class="badge">Term · whole life · annuity</span>
       </div>
 
       <div class="grid-main">
         <form class="card" @submit.prevent="calculatePremium">
-          <div class="card-head">
-            <h3>Policy details</h3>
-            <p>Change any assumption and recalculate.</p>
+          <div class="card-head"><h3>Policy</h3></div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="premium-age">Age</label>
+              <input id="premium-age" type="number" min="0" max="120" x-model.number="policy.age">
+            </div>
+            <div class="field">
+              <label for="premium-gender">Table</label>
+              <select id="premium-gender" x-model="policy.table_name">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
           </div>
 
-          <fieldset>
-            <legend>Insured</legend>
-            <div class="field-row">
-              <div class="field">
-                <label for="premium-age">Age</label>
-                <input id="premium-age" type="number" min="0" max="120" x-model.number="policy.age">
-              </div>
-              <div class="field">
-                <label for="premium-gender">Mortality table</label>
-                <select id="premium-gender" x-model="policy.table_name">
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </div>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="premium-smoker">Smoker</label>
-                <select id="premium-smoker" x-model="policy.smoker_status">
-                  <option value="">No</option>
-                  <option value="smoker">Yes</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="premium-health">Health</label>
-                <select id="premium-health" x-model="policy.health_rating">
-                  <option value="">Standard</option>
-                  <option value="preferred">Preferred</option>
-                  <option value="substandard">Substandard</option>
-                </select>
-              </div>
-            </div>
-          </fieldset>
-
-          <fieldset style="margin-top: 20px">
-            <legend>Policy</legend>
+          <div class="field-row">
             <div class="field">
-              <label for="premium-product">Product</label>
-              <select id="premium-product" x-model="policy.product_type">
-                <option value="term_life">Term life</option>
-                <option value="whole_life">Whole life</option>
-                <option value="immediate_annuity">Immediate annuity</option>
-                <option value="deferred_annuity">Deferred annuity</option>
+              <label for="premium-smoker">Smoker</label>
+              <select id="premium-smoker" x-model="policy.smoker_status">
+                <option value="">No</option>
+                <option value="smoker">Yes</option>
               </select>
             </div>
             <div class="field">
-              <label for="premium-cover">Sum assured / annual income (BWP)</label>
-              <input id="premium-cover" type="number" min="0" step="1000" x-model.number="policy.sum_assured">
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="premium-term">Term (years)</label>
-                <input id="premium-term" type="number" min="0" max="100" x-model.number="policy.term">
-              </div>
-              <div class="field">
-                <label for="premium-rate">Interest rate (%)</label>
-                <input id="premium-rate" type="number" min="0" max="100" step="0.1" x-model.number="policy.interest_rate">
-              </div>
-            </div>
-            <div class="field" x-show="policy.product_type === 'deferred_annuity'">
-              <label for="premium-deferral">Deferral period (years)</label>
-              <input id="premium-deferral" type="number" min="0" max="100" x-model.number="policy.deferral_period">
-            </div>
-          </fieldset>
-
-          <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-            <span x-show="!loading">Calculate premium</span>
-            <span x-show="loading">Calculating…</span>
-          </button>
-        </form>
-
-        <div class="stack">
-          <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
-
-          <div class="empty" x-show="!premium">
-            <div>
-              <strong>No calculation yet</strong>
-              Enter policy details to see net premium, gross premium and the reserve schedule.
+              <label for="premium-health">Health</label>
+              <select id="premium-health" x-model="policy.health_rating">
+                <option value="">Standard</option>
+                <option value="preferred">Preferred</option>
+                <option value="substandard">Substandard</option>
+              </select>
             </div>
           </div>
 
-          <div class="stack" x-show="premium">
+          <div class="field">
+            <label for="premium-product">Product</label>
+            <select id="premium-product" x-model="policy.product_type">
+              <option value="term_life">Term life</option>
+              <option value="whole_life">Whole life</option>
+              <option value="immediate_annuity">Immediate annuity</option>
+              <option value="deferred_annuity">Deferred annuity</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="premium-cover">Sum assured / income (BWP)</label>
+            <input id="premium-cover" type="number" min="0" step="1000" x-model.number="policy.sum_assured">
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="premium-term">Term (years)</label>
+              <input id="premium-term" type="number" min="0" max="100" x-model.number="policy.term">
+            </div>
+            <div class="field">
+              <label for="premium-rate">Rate (%)</label>
+              <input id="premium-rate" type="number" min="0" max="100" step="0.1" x-model.number="policy.interest_rate">
+            </div>
+          </div>
+
+          <div class="field" x-show="policy.product_type === 'deferred_annuity'">
+            <label for="premium-deferral">Deferral (years)</label>
+            <input id="premium-deferral" type="number" min="0" max="100" x-model.number="policy.deferral_period">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+            <span class="spinner" x-show="loading" x-cloak></span>
+            <span x-text="loading ? 'Calculating…' : 'Calculate premium'"></span>
+          </button>
+
+          <p class="data-note">Mortality: <button type="button" @click="openData">UK NLT 2021–23</button></p>
+        </form>
+
+        <div class="stack">
+          <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"
+            x-transition:enter="anim-in" x-transition:enter-start="anim-in-start" x-transition:enter-end="anim-in-end"></div>
+
+          <div class="empty" x-show="!premium">
+            <span>Run a calculation to see premiums and reserves.</span>
+          </div>
+
+          <div class="stack" x-show="premium"
+            x-transition:enter="anim-in" x-transition:enter-start="anim-in-start" x-transition:enter-end="anim-in-end">
             <div class="card">
               <div class="result-title">
                 <h3>Premium</h3>
@@ -162,87 +148,49 @@
               </div>
               <div class="metric-grid">
                 <div class="metric">
-                  <p class="metric-label">Net premium</p>
+                  <p class="metric-label">Net</p>
                   <p class="metric-value" x-text="money(premium && premium.net_premium)"></p>
-                  <p class="metric-note">Pure risk cost</p>
                 </div>
                 <div class="metric">
-                  <p class="metric-label">Gross premium</p>
+                  <p class="metric-label">Gross</p>
                   <p class="metric-value accent" x-text="money(premium && premium.gross_premium)"></p>
-                  <p class="metric-note">With expenses and profit</p>
                 </div>
                 <div class="metric">
                   <p class="metric-label">Monthly</p>
                   <p class="metric-value" x-text="money(premium && premium.gross_premium / 12)"></p>
-                  <p class="metric-note">If paid monthly</p>
                 </div>
               </div>
 
               <div class="dl" x-show="premium && premium.annual_payout">
-                <div>
-                  <dt>Annual payout</dt>
-                  <dd x-text="money(premium && premium.annual_payout)"></dd>
-                </div>
-                <div>
-                  <dt>Single premium required</dt>
-                  <dd x-text="money(premium && premium.total_premium_cost)"></dd>
-                </div>
+                <div><dt>Annual payout</dt><dd x-text="money(premium && premium.annual_payout)"></dd></div>
+                <div><dt>Single premium</dt><dd x-text="money(premium && premium.total_premium_cost)"></dd></div>
               </div>
 
               <div class="dl" x-show="premium && premium.expenses">
-                <div>
-                  <dt>Initial expense rate</dt>
-                  <dd x-text="pct(premium && premium.expenses && premium.expenses.initial_expense_rate)"></dd>
-                </div>
-                <div>
-                  <dt>Renewal expense rate</dt>
-                  <dd x-text="pct(premium && premium.expenses && premium.expenses.renewal_expense_rate)"></dd>
-                </div>
-                <div>
-                  <dt>Maintenance expense</dt>
-                  <dd x-text="money(premium && premium.expenses && premium.expenses.maintenance_expense)"></dd>
-                </div>
-                <div>
-                  <dt>Profit margin</dt>
-                  <dd x-text="pct(premium && premium.expenses && premium.expenses.profit_margin)"></dd>
-                </div>
+                <div><dt>Initial expense</dt><dd x-text="pct(premium && premium.expenses && premium.expenses.initial_expense_rate)"></dd></div>
+                <div><dt>Renewal expense</dt><dd x-text="pct(premium && premium.expenses && premium.expenses.renewal_expense_rate)"></dd></div>
+                <div><dt>Maintenance</dt><dd x-text="money(premium && premium.expenses && premium.expenses.maintenance_expense)"></dd></div>
+                <div><dt>Profit margin</dt><dd x-text="pct(premium && premium.expenses && premium.expenses.profit_margin)"></dd></div>
               </div>
 
               <div class="dl" x-show="premium && premium.risk_assessment && premium.risk_assessment.risk_multiplier">
-                <div>
-                  <dt>Risk multiplier</dt>
-                  <dd x-text="num(premium && premium.risk_assessment && premium.risk_assessment.risk_multiplier) + '×'"></dd>
-                </div>
-                <div>
-                  <dt>Annual mortality</dt>
-                  <dd x-text="pct(premium && premium.risk_assessment && premium.risk_assessment.annual_death_probability, 3)"></dd>
-                </div>
-                <div>
-                  <dt>Expected lifetime</dt>
-                  <dd x-text="num(premium && premium.risk_assessment && premium.risk_assessment.expected_lifetime_years, 1) + ' years'"></dd>
-                </div>
+                <div><dt>Risk multiplier</dt><dd x-text="num(premium && premium.risk_assessment && premium.risk_assessment.risk_multiplier) + '×'"></dd></div>
+                <div><dt>Annual mortality</dt><dd x-text="pct(premium && premium.risk_assessment && premium.risk_assessment.annual_death_probability, 3)"></dd></div>
               </div>
             </div>
 
             <div class="card" x-show="premium && premium.reserve_schedule && premium.reserve_schedule.length">
               <div class="card-head-row">
                 <h3>Reserve schedule</h3>
-                <span>Prospective, end of policy year</span>
+                <span>End of year</span>
               </div>
-              <div class="chart">
-                <canvas id="reserveChart"></canvas>
-              </div>
-              <div class="table-wrap" style="margin-top: 14px">
+              <div class="chart"><canvas id="reserveChart"></canvas></div>
+              <div class="table-wrap">
                 <table>
-                  <thead>
-                    <tr><th>Year</th><th class="num">Reserve (BWP)</th></tr>
-                  </thead>
+                  <thead><tr><th>Year</th><th class="num">Reserve (BWP)</th></tr></thead>
                   <tbody>
                     <template x-for="(value, i) in (premium && premium.reserve_schedule ? premium.reserve_schedule : [])" :key="i">
-                      <tr>
-                        <td x-text="i"></td>
-                        <td class="num" x-text="num(value)"></td>
-                      </tr>
+                      <tr><td x-text="i"></td><td class="num" x-text="num(value)"></td></tr>
                     </template>
                   </tbody>
                 </table>
@@ -254,23 +202,16 @@
     </section>
 
     <!-- Valuation -->
-    <section class="panel" x-show="tab === 'valuation'" x-cloak>
-      <div class="section-head">
-        <div>
-          <h2>Valuation</h2>
-          <p>Discount future money, or price a deferred annuity.</p>
-        </div>
-      </div>
+    <section class="panel" x-show="tab === 'valuation'" x-cloak
+      x-transition:enter="panel-enter" x-transition:enter-start="panel-enter-start" x-transition:enter-end="panel-enter-end">
+      <div class="section-head"><h2>Valuation</h2></div>
 
       <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
 
       <div class="split">
         <div class="stack">
           <form class="card" @submit.prevent="calculatePV">
-            <div class="card-head">
-              <h3>Present value</h3>
-              <p>PV = FV / (1 + i)<sup>n</sup></p>
-            </div>
+            <div class="card-head"><h3>Present value</h3></div>
             <div class="field">
               <label for="pv-amount">Future amount (BWP)</label>
               <input id="pv-amount" type="number" min="0" step="1000" x-model.number="pv.amount">
@@ -281,39 +222,27 @@
                 <input id="pv-years" type="number" min="0" max="100" x-model.number="pv.years">
               </div>
               <div class="field">
-                <label for="pv-rate">Interest rate (%)</label>
+                <label for="pv-rate">Rate (%)</label>
                 <input id="pv-rate" type="number" min="0" max="100" step="0.1" x-model.number="pv.rate">
               </div>
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Calculate PV</button>
+            <button type="submit" class="btn btn-primary btn-block">Calculate</button>
+            <div class="formula">PV = FV / (1 + i)<sup>n</sup></div>
           </form>
 
-          <div class="card" x-show="pvResult !== null">
+          <div class="card" x-show="pvResult !== null"
+            x-transition:enter="anim-in" x-transition:enter-start="anim-in-start" x-transition:enter-end="anim-in-end">
             <div class="metric">
               <p class="metric-label">Present value</p>
               <p class="metric-value accent" x-text="money(pvResult)"></p>
-              <p class="metric-note" x-text="'Discount factor ' + num(discountFactor(), 6)"></p>
             </div>
-            <div class="chart" style="margin-top: 14px">
-              <canvas id="pvChart"></canvas>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="formula">
-              <span class="accent">PV</span> = FV / (1 + i)<sup>n</sup><br>
-              <span class="accent">v</span> = 1 / (1 + i)
-            </div>
-            <p class="note">Every reserve and annuity in this app is a sum of discounted cash flows.</p>
+            <div class="chart"><canvas id="pvChart"></canvas></div>
           </div>
         </div>
 
         <div class="stack">
           <form class="card" @submit.prevent="calculateAnnuity">
-            <div class="card-head">
-              <h3>Deferred annuity</h3>
-              <p>Single premium needed to pay an income from a future age.</p>
-            </div>
+            <div class="card-head"><h3>Deferred annuity</h3></div>
             <div class="field-row">
               <div class="field">
                 <label for="annuity-age">Age now</label>
@@ -329,30 +258,25 @@
               <input id="annuity-amount" type="number" min="0" step="1000" x-model.number="annuity.amount">
             </div>
             <div class="field">
-              <label for="annuity-rate">Interest rate (%)</label>
+              <label for="annuity-rate">Rate (%)</label>
               <input id="annuity-rate" type="number" min="0" max="100" step="0.1" x-model.number="annuity.rate">
             </div>
             <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-              <span x-show="!loading">Calculate annuity</span>
-              <span x-show="loading">Calculating…</span>
+              <span class="spinner" x-show="loading" x-cloak></span>
+              <span x-text="loading ? 'Calculating…' : 'Calculate'"></span>
             </button>
           </form>
 
-          <div class="card" x-show="annuityResult">
-            <div class="result-title">
-              <h3>Annuity</h3>
-              <span class="badge">Deferred</span>
-            </div>
+          <div class="card" x-show="annuityResult"
+            x-transition:enter="anim-in" x-transition:enter-start="anim-in-start" x-transition:enter-end="anim-in-end">
             <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
               <div class="metric">
                 <p class="metric-label">Single premium</p>
                 <p class="metric-value accent" x-text="money(annuityResult && annuityResult.total_premium_cost)"></p>
-                <p class="metric-note">Cost today</p>
               </div>
               <div class="metric">
                 <p class="metric-label">Annual payout</p>
                 <p class="metric-value" x-text="money(annuityResult && annuityResult.annual_payout)"></p>
-                <p class="metric-note">From age <span x-text="annuity.age + annuity.deferral"></span></p>
               </div>
             </div>
           </div>
@@ -361,27 +285,20 @@
     </section>
 
     <!-- Reserves -->
-    <section class="panel" x-show="tab === 'reserves'" x-cloak>
-      <div class="section-head">
-        <div>
-          <h2>Policy reserves</h2>
-          <p>Prospective schedule plus the retrospective check at a chosen policy year.</p>
-        </div>
-      </div>
+    <section class="panel" x-show="tab === 'reserves'" x-cloak
+      x-transition:enter="panel-enter" x-transition:enter-start="panel-enter-start" x-transition:enter-end="panel-enter-end">
+      <div class="section-head"><h2>Reserves</h2></div>
 
       <div class="grid-main">
         <form class="card" @submit.prevent="calculateReserves">
-          <div class="card-head">
-            <h3>Reserve assumptions</h3>
-            <p>Uses the net premium from the same policy.</p>
-          </div>
+          <div class="card-head"><h3>Assumptions</h3></div>
           <div class="field-row">
             <div class="field">
               <label for="reserve-age">Age</label>
               <input id="reserve-age" type="number" min="0" max="120" x-model.number="reserve.age">
             </div>
             <div class="field">
-              <label for="reserve-gender">Mortality table</label>
+              <label for="reserve-gender">Table</label>
               <select id="reserve-gender" x-model="reserve.table_name">
                 <option value="male">Male</option>
                 <option value="female">Female</option>
@@ -398,44 +315,39 @@
               <input id="reserve-term" type="number" min="1" max="100" x-model.number="reserve.term">
             </div>
             <div class="field">
-              <label for="reserve-rate">Interest rate (%)</label>
+              <label for="reserve-rate">Rate (%)</label>
               <input id="reserve-rate" type="number" min="0" max="100" step="0.1" x-model.number="reserve.rate">
             </div>
           </div>
           <div class="field">
-            <label for="reserve-year">Policy year to inspect</label>
-            <input id="reserve-year" type="number" min="0" max="100" x-model.number="reserve.year">
-            <p class="hint">Retrospective values are accumulated to the end of this year.</p>
+            <label for="reserve-year">Policy year</label>
+            <input id="reserve-year" type="number" min="1" max="100" x-model.number="reserve.year">
           </div>
           <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-            <span x-show="!loading">Calculate reserves</span>
-            <span x-show="loading">Calculating…</span>
+            <span class="spinner" x-show="loading" x-cloak></span>
+            <span x-text="loading ? 'Calculating…' : 'Calculate reserves'"></span>
           </button>
         </form>
 
         <div class="stack">
           <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
 
-          <div class="empty" x-show="!reserveResult">
-            <div>
-              <strong>No reserve calculated</strong>
-              Run the calculation to see the prospective schedule and the retrospective check.
-            </div>
-          </div>
+          <div class="empty" x-show="!reserveResult"><span>Run a calculation to see reserves.</span></div>
 
-          <div class="stack" x-show="reserveResult">
+          <div class="stack" x-show="reserveResult"
+            x-transition:enter="anim-in" x-transition:enter-start="anim-in-start" x-transition:enter-end="anim-in-end">
             <div class="card">
               <div class="result-title">
-                <h3>Reserve at year <span x-text="reserve.year"></span></h3>
+                <h3>Year <span x-text="reserve.year"></span></h3>
                 <span class="badge">Retrospective</span>
               </div>
               <div class="metric-grid">
                 <div class="metric">
-                  <p class="metric-label">Accumulated premiums</p>
+                  <p class="metric-label">Premiums</p>
                   <p class="metric-value" x-text="money(reserveResult && reserveResult.accumulated_premiums)"></p>
                 </div>
                 <div class="metric">
-                  <p class="metric-label">Accumulated claims</p>
+                  <p class="metric-label">Claims</p>
                   <p class="metric-value" x-text="money(reserveResult && reserveResult.accumulated_claims)"></p>
                 </div>
                 <div class="metric">
@@ -443,17 +355,11 @@
                   <p class="metric-value accent" x-text="money(reserveResult && reserveResult.reserve)"></p>
                 </div>
               </div>
-              <p class="note">Both methods should agree at the end of the term. Differences here come from the net premium basis and the inspection year.</p>
             </div>
 
             <div class="card" x-show="reserveSchedule && reserveSchedule.length">
-              <div class="card-head-row">
-                <h3>Prospective reserve schedule</h3>
-                <span>End of policy year</span>
-              </div>
-              <div class="chart">
-                <canvas id="reserveScheduleChart"></canvas>
-              </div>
+              <div class="card-head-row"><h3>Schedule</h3><span>End of year</span></div>
+              <div class="chart"><canvas id="reserveScheduleChart"></canvas></div>
             </div>
           </div>
         </div>
@@ -461,22 +367,15 @@
     </section>
 
     <!-- Simulation -->
-    <section class="panel" x-show="tab === 'simulation'" x-cloak>
-      <div class="section-head">
-        <div>
-          <h2>Monte Carlo</h2>
-          <p>Geometric Brownian motion paths, summarised as an interest-rate loss distribution.</p>
-        </div>
-      </div>
+    <section class="panel" x-show="tab === 'simulation'" x-cloak
+      x-transition:enter="panel-enter" x-transition:enter-start="panel-enter-start" x-transition:enter-end="panel-enter-end">
+      <div class="section-head"><h2>Monte Carlo</h2></div>
 
       <div class="grid-main">
         <form class="card" @submit.prevent="runMonteCarlo">
-          <div class="card-head">
-            <h3>Simulation settings</h3>
-            <p>Losses are measured on a BWP 1,000,000 notional over ten years.</p>
-          </div>
+          <div class="card-head"><h3>Settings</h3></div>
           <div class="field">
-            <label for="mc-paths">Number of paths</label>
+            <label for="mc-paths">Paths</label>
             <input id="mc-paths" type="number" min="100" max="100000" step="100" x-model.number="mc.num_paths">
           </div>
           <div class="field-row">
@@ -490,72 +389,35 @@
             </div>
           </div>
           <div class="field">
-            <label for="mc-seed">Seed <span class="hint">(optional, for repeatable runs)</span></label>
+            <label for="mc-seed">Seed</label>
             <input id="mc-seed" type="number" min="0" step="1" x-model.number="mc.seed">
           </div>
           <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-            <span x-show="!loading">Run simulation</span>
-            <span x-show="loading">Simulating…</span>
+            <span class="spinner" x-show="loading" x-cloak></span>
+            <span x-text="loading ? 'Simulating…' : 'Run simulation'"></span>
           </button>
-          <div class="formula" style="margin-top: 16px">
-            dS = <span class="accent">μ</span>S dt + <span class="accent">σ</span>S dW
-          </div>
+          <div class="formula">dS = μS dt + σS dW · BWP 1M · 10 years</div>
         </form>
 
         <div class="stack">
           <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
+          <div class="empty" x-show="!mcResult"><span>Run a simulation to see tail risk.</span></div>
 
-          <div class="empty" x-show="!mcResult">
-            <div>
-              <strong>No simulation yet</strong>
-              Configure the paths and run to see VaR, CTE and the loss spread.
-            </div>
-          </div>
-
-          <div class="stack" x-show="mcResult">
+          <div class="stack" x-show="mcResult"
+            x-transition:enter="anim-in" x-transition:enter-start="anim-in-start" x-transition:enter-end="anim-in-end">
             <div class="card">
-              <div class="result-title">
-                <h3>Simulated losses</h3>
-                <span class="badge" x-text="mc.num_paths.toLocaleString() + ' paths'"></span>
-              </div>
               <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
-                <div class="metric">
-                  <p class="metric-label">Mean loss</p>
-                  <p class="metric-value" x-text="money(mcResult && mcResult.mean)"></p>
-                </div>
-                <div class="metric">
-                  <p class="metric-label">Std deviation</p>
-                  <p class="metric-value" x-text="money(mcResult && mcResult.std_dev)"></p>
-                </div>
-                <div class="metric">
-                  <p class="metric-label">VaR 95%</p>
-                  <p class="metric-value accent" x-text="money(mcResult && mcResult.var_95)"></p>
-                </div>
-                <div class="metric">
-                  <p class="metric-label">VaR 99%</p>
-                  <p class="metric-value" x-text="money(mcResult && mcResult.var_99)"></p>
-                </div>
-                <div class="metric">
-                  <p class="metric-label">CTE 95%</p>
-                  <p class="metric-value" x-text="money(mcResult && mcResult.cte_95)"></p>
-                  <p class="metric-note">Average of worst 5%</p>
-                </div>
-                <div class="metric">
-                  <p class="metric-label">CTE 99%</p>
-                  <p class="metric-value" x-text="money(mcResult && mcResult.cte_99)"></p>
-                  <p class="metric-note">Average of worst 1%</p>
-                </div>
+                <div class="metric"><p class="metric-label">Mean</p><p class="metric-value" x-text="money(mcResult && mcResult.mean)"></p></div>
+                <div class="metric"><p class="metric-label">Std dev</p><p class="metric-value" x-text="money(mcResult && mcResult.std_dev)"></p></div>
+                <div class="metric"><p class="metric-label">VaR 95</p><p class="metric-value accent" x-text="money(mcResult && mcResult.var_95)"></p></div>
+                <div class="metric"><p class="metric-label">VaR 99</p><p class="metric-value" x-text="money(mcResult && mcResult.var_99)"></p></div>
+                <div class="metric"><p class="metric-label">CTE 95</p><p class="metric-value" x-text="money(mcResult && mcResult.cte_95)"></p></div>
+                <div class="metric"><p class="metric-label">CTE 99</p><p class="metric-value" x-text="money(mcResult && mcResult.cte_99)"></p></div>
               </div>
             </div>
-
             <div class="card">
-              <div class="card-head-row">
-                <h3>Loss summary</h3>
-                <span>BWP</span>
-              </div>
-              <div class="chart">
-                <canvas id="mcChart"></canvas>
-              </div>
+              <div class="card-head-row"><h3>Loss summary</h3><span>BWP</span></div>
+              <div class="chart"><canvas id="mcChart"></canvas></div>
             </div>
           </div>
         </div>
@@ -563,82 +425,44 @@
     </section>
 
     <!-- Risk -->
-    <section class="panel" x-show="tab === 'risk'" x-cloak>
-      <div class="section-head">
-        <div>
-          <h2>Risk measures</h2>
-          <p>Paste a loss distribution and read VaR and CTE directly.</p>
-        </div>
-      </div>
+    <section class="panel" x-show="tab === 'risk'" x-cloak
+      x-transition:enter="panel-enter" x-transition:enter-start="panel-enter-start" x-transition:enter-end="panel-enter-end">
+      <div class="section-head"><h2>Risk</h2></div>
 
       <div class="grid-main">
         <form class="card" @submit.prevent="calculateRisk">
-          <div class="card-head">
-            <h3>Loss distribution</h3>
-            <p>Comma-separated values from history or a model run.</p>
-          </div>
+          <div class="card-head"><h3>Losses</h3></div>
           <div class="field">
-            <label for="risk-losses">Losses</label>
+            <label for="risk-losses">Comma-separated</label>
             <textarea id="risk-losses" rows="8" x-model="risk.input"></textarea>
           </div>
           <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-            <span x-show="!loading">Compute risk metrics</span>
-            <span x-show="loading">Computing…</span>
+            <span class="spinner" x-show="loading" x-cloak></span>
+            <span x-text="loading ? 'Computing…' : 'Compute'"></span>
           </button>
         </form>
 
         <div class="stack">
           <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
+          <div class="empty" x-show="!riskResult"><span>Add losses to see tail risk.</span></div>
 
-          <div class="empty" x-show="!riskResult">
-            <div>
-              <strong>No distribution yet</strong>
-              Add losses and compute to see tail risk.
-            </div>
-          </div>
-
-          <div class="stack" x-show="riskResult">
+          <div class="stack" x-show="riskResult"
+            x-transition:enter="anim-in" x-transition:enter-start="anim-in-start" x-transition:enter-end="anim-in-end">
             <div class="card">
               <div class="result-title">
                 <h3>Tail risk</h3>
                 <span class="badge" x-text="riskCount() + ' observations'"></span>
               </div>
               <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
-                <div class="metric">
-                  <p class="metric-label">VaR 95%</p>
-                  <p class="metric-value accent" x-text="money(riskResult && riskResult.var_95)"></p>
-                  <p class="metric-note">5% exceedance</p>
-                </div>
-                <div class="metric">
-                  <p class="metric-label">VaR 99%</p>
-                  <p class="metric-value" x-text="money(riskResult && riskResult.var_99)"></p>
-                  <p class="metric-note">1% exceedance</p>
-                </div>
-                <div class="metric">
-                  <p class="metric-label">CTE 95%</p>
-                  <p class="metric-value" x-text="money(riskResult && riskResult.cte_95)"></p>
-                  <p class="metric-note">Average of worst 5%</p>
-                </div>
-                <div class="metric">
-                  <p class="metric-label">CTE 99%</p>
-                  <p class="metric-value" x-text="money(riskResult && riskResult.cte_99)"></p>
-                  <p class="metric-note">Average of worst 1%</p>
-                </div>
-              </div>
-              <div class="dl">
-                <div><dt>Mean</dt><dd x-text="money(riskResult && riskResult.mean)"></dd></div>
-                <div><dt>Range</dt><dd x-text="money(riskResult && riskResult.min) + ' – ' + money(riskResult && riskResult.max)"></dd></div>
+                <div class="metric"><p class="metric-label">VaR 95</p><p class="metric-value accent" x-text="money(riskResult && riskResult.var_95)"></p></div>
+                <div class="metric"><p class="metric-label">VaR 99</p><p class="metric-value" x-text="money(riskResult && riskResult.var_99)"></p></div>
+                <div class="metric"><p class="metric-label">CTE 95</p><p class="metric-value" x-text="money(riskResult && riskResult.cte_95)"></p></div>
+                <div class="metric"><p class="metric-label">CTE 99</p><p class="metric-value" x-text="money(riskResult && riskResult.cte_99)"></p></div>
               </div>
             </div>
-
             <div class="card">
-              <div class="card-head-row">
-                <h3>Sorted losses</h3>
-                <span>Tail highlighted</span>
-              </div>
-              <div class="chart">
-                <canvas id="riskChart"></canvas>
-              </div>
+              <div class="card-head-row"><h3>Sorted losses</h3><span>Tail highlighted</span></div>
+              <div class="chart"><canvas id="riskChart"></canvas></div>
             </div>
           </div>
         </div>
@@ -646,47 +470,38 @@
     </section>
 
     <!-- Rates -->
-    <section class="panel" x-show="tab === 'rates'" x-cloak>
-      <div class="section-head">
-        <div>
-          <h2>Rate converter</h2>
-          <p>Move between nominal, effective and continuous rates.</p>
-        </div>
-      </div>
+    <section class="panel" x-show="tab === 'rates'" x-cloak
+      x-transition:enter="panel-enter" x-transition:enter-start="panel-enter-start" x-transition:enter-end="panel-enter-end">
+      <div class="section-head"><h2>Rates</h2></div>
 
       <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
 
       <div class="split">
         <form class="card" @submit.prevent="convertRate">
-          <div class="card-head">
-            <h3>Nominal rate</h3>
-            <p>i<sup>(m)</sup> with m compounding periods per year.</p>
-          </div>
+          <div class="card-head"><h3>Nominal rate</h3></div>
           <div class="field">
-            <label for="rate-nominal">Nominal rate (%)</label>
+            <label for="rate-nominal">Rate (%)</label>
             <input id="rate-nominal" type="number" min="0" max="100" step="0.01" x-model.number="rates.nominal">
           </div>
           <div class="field">
             <label for="rate-compounding">Compounding</label>
             <select id="rate-compounding" x-model.number="rates.compounding">
-              <option :value="1">Annual (m = 1)</option>
-              <option :value="2">Semi-annual (m = 2)</option>
-              <option :value="4">Quarterly (m = 4)</option>
-              <option :value="12">Monthly (m = 12)</option>
-              <option :value="365">Daily (m = 365)</option>
+              <option :value="1">Annual</option>
+              <option :value="2">Semi-annual</option>
+              <option :value="4">Quarterly</option>
+              <option :value="12">Monthly</option>
+              <option :value="365">Daily</option>
             </select>
           </div>
           <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-            <span x-show="!loading">Convert rate</span>
-            <span x-show="loading">Converting…</span>
+            <span class="spinner" x-show="loading" x-cloak></span>
+            <span x-text="loading ? 'Converting…' : 'Convert'"></span>
           </button>
-          <div class="formula" style="margin-top: 16px">
-            i = (1 + i<sup>(m)</sup>/m)<sup>m</sup> − 1<br>
-            δ = ln(1 + i)
-          </div>
+          <div class="formula">i = (1 + i<sup>(m)</sup>/m)<sup>m</sup> − 1 · δ = ln(1 + i)</div>
         </form>
 
-        <div class="stack" x-show="rateResult">
+        <div class="stack" x-show="rateResult"
+          x-transition:enter="anim-in" x-transition:enter-start="anim-in-start" x-transition:enter-end="anim-in-end">
           <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
             <div class="metric">
               <p class="metric-label">Effective annual</p>
@@ -697,96 +512,63 @@
               <p class="metric-value" x-text="num(rateResult && rateResult.force_of_interest, 6)"></p>
             </div>
           </div>
-
           <div class="card">
-            <div class="card-head-row">
-              <h3>Effective rate by frequency</h3>
-              <span>Same nominal rate</span>
-            </div>
-            <div class="chart">
-              <canvas id="rateChart"></canvas>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="dl">
-              <div><dt>Nominal rate</dt><dd x-text="pct(rates.nominal / 100, 4)"></dd></div>
-              <div><dt>Compounding</dt><dd x-text="'m = ' + rates.compounding"></dd></div>
-              <div><dt>Effective rate</dt><dd x-text="pct(rateResult && rateResult.effective_rate, 4)"></dd></div>
-            </div>
+            <div class="card-head-row"><h3>By frequency</h3><span>Same nominal</span></div>
+            <div class="chart"><canvas id="rateChart"></canvas></div>
           </div>
         </div>
 
-        <div class="empty" x-show="!rateResult" style="grid-column: 1 / -1">
-          <div>
-            <strong>No conversion yet</strong>
-            Enter a nominal rate to see the effective rate and force of interest.
-          </div>
-        </div>
+        <div class="empty" x-show="!rateResult" style="grid-column: 1 / -1"><span>Enter a rate to convert.</span></div>
       </div>
     </section>
 
-    <!-- Benchmarks -->
-    <section class="panel" x-show="tab === 'benchmarks'" x-cloak>
+    <!-- API -->
+    <section class="panel" x-show="tab === 'api'" x-cloak
+      x-transition:enter="panel-enter" x-transition:enter-start="panel-enter-start" x-transition:enter-end="panel-enter-end">
       <div class="section-head">
-        <div>
-          <h2>Engine benchmarks</h2>
-          <p>Indicative throughput of the Go + v-star calculation path.</p>
-        </div>
+        <h2>API</h2>
+        <span class="badge">Live · JSON</span>
       </div>
 
-      <div class="stack">
-        <div class="metric-grid">
-          <div class="metric">
-            <p class="metric-label">CSV parsing</p>
-            <p class="metric-value accent">28M+</p>
-            <p class="metric-note">rows per second</p>
-          </div>
-          <div class="metric">
-            <p class="metric-label">Monte Carlo</p>
-            <p class="metric-value accent">100K+</p>
-            <p class="metric-note">paths per second</p>
-          </div>
-          <div class="metric">
-            <p class="metric-label">Present value</p>
-            <p class="metric-value accent">28M+</p>
-            <p class="metric-note">calculations per second</p>
-          </div>
+      <div class="api-layout">
+        <div class="api-list" aria-label="API endpoints">
+          <template x-for="endpoint in apiEndpoints" :key="endpoint.id">
+            <button type="button" class="api-item" :class="{ 'is-active': api.selectedId === endpoint.id }"
+              @click="selectEndpoint(endpoint.id)">
+              <span class="method" :class="'method-' + endpoint.method.toLowerCase()" x-text="endpoint.method"></span>
+              <span class="api-path" x-text="endpoint.path"></span>
+            </button>
+          </template>
         </div>
 
-        <div class="card">
-          <div class="card-head-row">
-            <h3>Operations per second</h3>
-            <span>Log scale</span>
+        <div class="card api-detail">
+          <div class="api-head">
+            <span class="method" :class="'method-' + apiSelected.method.toLowerCase()" x-text="apiSelected.method"></span>
+            <code x-text="apiSelected.path"></code>
+            <span class="api-desc" x-text="apiSelected.desc"></span>
           </div>
-          <div class="chart tall">
-            <canvas id="perfChart"></canvas>
-          </div>
-          <p class="note">Illustrative comparison against common spreadsheet and scripting setups. Reproduce locally with the benchmark suite.</p>
-        </div>
 
-        <div class="split">
-          <div class="card">
-            <div class="card-head">
-              <h3>Why Go + v-star</h3>
-            </div>
-            <ul class="plain-list">
-              <li>Single binary, no runtime dependencies</li>
-              <li>Deterministic calculations with streaming CSV input</li>
-              <li>Goroutine-based parallel valuations</li>
-              <li>Standard library HTTP server</li>
-            </ul>
+          <div class="api-actions">
+            <button type="button" class="btn btn-primary btn-sm" @click="apiSend" :disabled="api.loading">
+              <span class="spinner" x-show="api.loading" x-cloak></span>
+              <span x-text="api.loading ? 'Sending…' : 'Send request'"></span>
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="copyCurl" x-text="api.copied ? 'Copied' : 'Copy curl'"></button>
           </div>
-          <div class="card">
-            <div class="card-head">
-              <h3>What runs here</h3>
+
+          <template x-if="apiBody()">
+            <div class="api-block">
+              <p class="field-label">Request</p>
+              <pre class="code request" x-text="apiBody()"></pre>
             </div>
-            <ul class="plain-list">
-              <li>Term, whole life and endowment premiums</li>
-              <li>Immediate and deferred annuities</li>
-              <li>Prospective and retrospective reserves</li>
-              <li>Monte Carlo, VaR and CTE</li>
-            </ul>
+          </template>
+
+          <div class="api-block">
+            <div class="api-response-head">
+              <p class="field-label">Response</p>
+              <span class="api-status" :class="{ ok: api.ok, bad: api.error || (api.status && !api.ok) }" aria-live="polite" x-text="api.error || api.status"></span>
+            </div>
+            <pre class="code" x-text="api.response || (api.loading ? 'Sending…' : 'Send a request to see the response.')"></pre>
           </div>
         </div>
       </div>
@@ -794,8 +576,49 @@
   </main>
 
   <footer class="site-foot wrap">
-    <p>Actuworry — actuarial platform built with Go + v-star.</p>
-    <span>Educational use only · not for commercial decisions</span>
+    <span>actuworry</span>
+    <span>Educational use only · UK NLT 2021–23</span>
+    <div class="foot-links">
+      <button type="button" @click="openData">Data</button>
+      <button type="button" @click="setTab('api')">API</button>
+    </div>
   </footer>
+
+  <!-- Data modal -->
+  <div class="modal" x-show="dataOpen" x-cloak @click.self="closeData()"
+    x-transition:enter="modal-enter" x-transition:enter-start="modal-enter-start" x-transition:enter-end="modal-enter-end"
+    x-transition:leave="modal-leave" x-transition:leave-start="modal-leave-start" x-transition:leave-end="modal-leave-end">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="data-title"
+      x-transition:enter="modal-enter" x-transition:enter-start="modal-card-start" x-transition:enter-end="modal-card-end"
+      x-transition:leave="modal-leave" x-transition:leave-start="modal-card-end" x-transition:leave-end="modal-card-start">
+      <div class="modal-head">
+        <h2 id="data-title">Data &amp; assumptions</h2>
+        <button type="button" class="icon-btn" @click="closeData" aria-label="Close">×</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="callout">
+          <p><strong>Mortality.</strong> UK National Life Tables 2021–2023 (ONS), qx column, ages 0–100.</p>
+          <p>This is a reference basis for demos, not Botswana-specific experience.</p>
+          <a class="inline-link" href="https://www.ons.gov.uk/peoplepopulationandcommunity/birthsdeathsandmarriages/lifeexpectancies/bulletins/nationallifetablesunitedkingdom/2021to2023" target="_blank" rel="noreferrer">ONS source ↗</a>
+        </div>
+
+        <div class="error" role="alert" x-show="dataError" x-text="dataError"></div>
+
+        <div class="dl">
+          <div>
+            <dt>Loaded tables</dt>
+            <dd x-text="dataLoading ? 'Loading…' : (dataTables.length ? dataTables.join(', ') : '—')"></dd>
+          </div>
+          <div><dt>Premium basis</dt><dd>Equivalence principle</dd></div>
+          <div><dt>Gross premium</dt><dd>Expenses + profit loading</dd></div>
+          <div><dt>Reserves</dt><dd>Prospective + retrospective</dd></div>
+          <div><dt>Simulation</dt><dd>GBM · 10 years · BWP 1M</dd></div>
+        </div>
+
+        <p class="note">Every result is an illustration. Not for commercial decisions.</p>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
