@@ -142,13 +142,13 @@ func (h *ActuarialHandler) RiskAnalysis(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	var req struct {
-		Losees []float64 `json:"losses"`
+		Losses []float64 `json:"losses"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	result := actuarial.ComputeRiskReport(req.Losees)
+	result := actuarial.ComputeRiskReport(req.Losses)
 	sendJSON(w, result, http.StatusOK)
 }
 
@@ -229,16 +229,30 @@ func (h *ActuarialHandler) RetrospectiveReserve(w http.ResponseWriter, r *http.R
 	}
 	var req struct {
 		Policy models.Policy `json:"policy"`
+		Year   int           `json:"year"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	mortTable, _ := h.service.GetMortalityTable(req.Policy.Gender)
-	netPrem, _ := h.service.CalculatePremium(&req.Policy)
+	mortTable, err := h.service.GetMortalityTable(req.Policy.Gender)
+	if err != nil {
+		sendError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	netPrem, err := h.service.CalculatePremium(&req.Policy)
+	if err != nil {
+		sendError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	// Reserves are reported at the requested policy year, not the full term.
+	year := req.Year
+	if year <= 0 || year > req.Policy.Term {
+		year = req.Policy.Term
+	}
 	result := actuarial.CalcRetrospectiveReserve(&actuarial.Policy{
 		Age:            req.Policy.Age,
-		Term:           req.Policy.Term,
+		Term:           year,
 		CoverageAmount: req.Policy.CoverageAmount,
 		InterestRate:   req.Policy.InterestRate,
 	}, mortTable, netPrem.NetPremium)

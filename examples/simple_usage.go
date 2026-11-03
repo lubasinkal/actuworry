@@ -10,7 +10,8 @@ import (
 )
 
 func main() {
-	fmt.Println("=== Actuarial Calculator Examples ===\n")
+	fmt.Println("=== Actuarial Calculator Examples ===")
+	fmt.Println()
 	
 	// Example 1: Basic Present Value
 	showPresentValueExample()
@@ -27,7 +28,8 @@ func showPresentValueExample() {
 	fmt.Println("1. PRESENT VALUE EXAMPLE")
 	fmt.Println("------------------------")
 	fmt.Println("Question: If you need $100,000 in 10 years, how much is that worth today?")
-	fmt.Println("(Assuming 5% annual interest rate)\n")
+	fmt.Println("(Assuming 5% annual interest rate)")
+	fmt.Println()
 	
 	futureValue := 100000.0
 	interestRate := 0.05
@@ -48,7 +50,8 @@ func showSimplePremiumCalculation() {
 	fmt.Println("2. SIMPLE PREMIUM CALCULATION")
 	fmt.Println("-----------------------------")
 	fmt.Println("Calculating premium for a 35-year-old male")
-	fmt.Println("$500,000 coverage, 20-year term life insurance\n")
+	fmt.Println("$500,000 coverage, 20-year term life insurance")
+	fmt.Println()
 	
 	// Create a simple mortality table (fake data for example)
 	mortalityTable := createSampleMortalityTable()
@@ -85,7 +88,8 @@ func showSimplePremiumCalculation() {
 func showServiceLayerExample() {
 	fmt.Println("3. USING THE SERVICE LAYER")
 	fmt.Println("--------------------------")
-	fmt.Println("The service layer makes it easier to use the calculator\n")
+	fmt.Println("The service layer makes it easier to use the calculator")
+	fmt.Println()
 	
 	// Create the service
 	_ = services.NewActuarialService() // In real code: service := ...
@@ -93,7 +97,8 @@ func showServiceLayerExample() {
 	// Load mortality tables (you would load real files here)
 	// For this example, we'll just use fake data
 	fmt.Println("Note: In real usage, you'd load actual mortality tables from CSV files")
-	fmt.Println("Example: service.LoadMortalityTable(\"male\", \"data/male.csv\")\n")
+	fmt.Println("Example: service.LoadMortalityTable(\"male\", \"data/male.csv\")")
+	fmt.Println()
 	
 	// Create a policy using the models package
 	_ = models.Policy{
@@ -119,7 +124,8 @@ func showServiceLayerExample() {
 	fmt.Println("  - Gross premium (what customer pays)")
 	fmt.Println("  - Reserve schedule (money set aside each year)")
 	fmt.Println("  - Expense breakdown")
-	fmt.Println("  - Risk assessment details\n")
+	fmt.Println("  - Risk assessment details")
+	fmt.Println()
 }
 
 // createSampleMortalityTable creates fake mortality data for examples

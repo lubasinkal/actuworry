@@ -1,277 +1,53 @@
-# 🇧🇼 Actuworry - Life Insurance Actuarial Platform
+# Actuworry
 
-> A locally-built life insurance pricing, valuation and reserving tool for the Botswana market
+Life insurance pricing, valuation and reserving for the Botswana market. Go backend, static frontend, no build step.
 
-🌐 **Live Demo:** [https://actuworry.onrender.com](https://actuworry.onrender.com)
+Live demo: https://actuworry.onrender.com
 
-Actuworry is a working prototype of an in-house actuarial system that handles core life insurance calculations - traditionally outsourced to foreign providers. Built to demonstrate that local actuarial technology is feasible, affordable, and aligned with market needs.
+## Run
 
----
+Requires Go 1.26+.
 
-## 🎯 Project Vision
-
-Build a **transparent and customizable actuarial engine** that:
-
-- 📊 **Prices life insurance products** using proper actuarial principles
-- 📉 **Calculates reserves** using prospective methods
-- 💰 **Includes expense loadings** and profit margins for gross premiums
-- 🌍 **Uses local mortality tables** (Botswana-specific data)
-- 🔧 **Is modular and extensible** for different product types
-- 💼 **Reduces reliance** on expensive black-box foreign tools
-
----
-
-## ✅ Current Features
-
-### Backend (Go)
-- 🧮 **Net premium calculation** using equivalence principle
-- 💸 **Gross premium calculation** with configurable expenses  
-- 📊 **Net premium reserves** calculation over policy term
-- 🏠 **Whole life insurance** calculations with lifetime coverage
-- 📋 **Mortality table loading** from CSV files (male/female tables)
-- 🌐 **RESTful API** with proper error handling and validation
-- 🚀 **Batch calculation API** for processing multiple policies
-- 📈 **Portfolio analysis** with summary statistics
-- 🧪 **Test suite** ensuring actuarial accuracy
-
-### Frontend (HTML/JavaScript)
-- 📝 **Life insurance pricing form** with product type selection
-- 🏠 **Product types:** Term Life, Whole Life, Immediate/Deferred Annuity
-- 📊 **Interactive charts** showing reserve schedules and premium breakdown
-- 💰 **Premium results display** (net vs gross with explanations)
-- 📈 **Visual reserve projections** with Chart.js integration
-- 💼 **Portfolio Analysis** - Analyze multiple policies at once
-- 🔬 **Sensitivity Analysis** - Test how changes affect premiums
-- 📋 **Reserve schedule table** showing year-by-year values
-- 🚬 **Risk factors:** Smoker status, health ratings
-- 📱 **Responsive design** using Tailwind CSS
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Go 1.19+ installed
-- Web browser for the frontend
-
-### Running the Application
-
-1. **Clone and navigate to the project:**
-   ```bash
-   git clone https://github.com/lubasinkal/actuworry
-   cd actuworry
-   ```
-
-2. **Start the server:**
-   ```bash
-   make run
-   # or manually:
-   go run main.go
-   # or build and run:
-   make build && ./app
-   ```
-
-3. **Open your browser:**
-   ```
-   http://localhost:8080
-   ```
-
-4. **Try the API directly:**
-   ```bash
-   curl -X POST http://localhost:8080/calculate \
-     -H "Content-Type: application/json" \
-     -d '{
-       "age": 35,
-       "term": 10, 
-       "sum_assured": 100000,
-       "interest_rate": 0.05,
-       "table_name": "female"
-     }'
-   ```
-
-### Expected Response
-```json
-{
-  "net_premium": 456.78,
-  "gross_premium": 589.32,
-  "reserve_schedule": [0, 123.45, 234.56, ...],
-  "product_type": "term_life",
-  "expenses": {
-    "initial_expense_rate": 0.03,
-    "renewal_expense_rate": 0.05,
-    "maintenance_expense": 50.0,
-    "profit_margin": 0.15
-  }
-}
-```
-
-## 🔧 Technical Architecture
-
-### Backend Stack
-- **Language:** Go (for performance and simplicity)
-- **HTTP Server:** Standard library with custom middleware
-- **Data Format:** CSV mortality tables, JSON API responses
-- **Validation:** Input validation with proper error handling
-- **Testing:** Go testing framework with actuarial test cases
-
-### Actuarial Methods
-- **Net Premiums:** Calculated using equivalence principle (PV benefits = PV premiums)
-- **Gross Premiums:** Iterative calculation including expense loadings
-- **Reserves:** Prospective method (PV future benefits - PV future premiums)
-- **Mortality Tables:** Standard life table format with qx probabilities
-
-### API Endpoints
-- `POST /calculate` - Calculate premiums and reserves (single policy)
-- `POST /calculate/batch` - Calculate multiple policies with summary
-- `GET /tables` - List available mortality tables
-- `GET /health` - Health check endpoint
-- `GET /` - Serve frontend application
-
-### Product Types
-- **Term Life Insurance** - Coverage for specified term only
-- **Whole Life Insurance** - Lifetime coverage with flexible premium paying periods
-- **Immediate Annuity** - Regular payments starting immediately
-- **Deferred Annuity** - Regular payments starting after deferral period
-
----
-
-## 📁 Project Structure
-
-```
-actuworry/
-├── backend/              # Go backend server
-│   ├── actuarial/       # Core actuarial calculations
-│   ├── cmd/server/      # Server entry point
-│   ├── data/            # Mortality tables (CSV)
-│   ├── handlers/        # HTTP request handlers
-│   ├── middleware/      # CORS and other middleware
-│   ├── models/          # Data models
-│   ├── routes/          # API route definitions
-│   ├── services/        # Business logic
-│   ├── scripts/         # Utility scripts
-│   ├── tests/           # Test files and scripts
-│   └── utils/           # Helper functions
-├── frontend/            # Web interface
-│   ├── components/      # UI components
-│   ├── css/            # Stylesheets
-│   ├── js/             # JavaScript modules
-│   └── index.html      # Main application
-├── docs/               # Documentation
-├── main.go             # Application entry point
-├── go.mod              # Go dependencies
-├── Makefile            # Build commands
-└── render.yaml         # Deployment configuration
-```
-
----
-
-## 🧪 Testing
-
-**Run the actuarial tests:**
 ```bash
-cd backend && go test -v ./actuarial/
+make run
 ```
 
-**Test the API manually:**
+Open http://localhost:8080. `make test` runs the Go tests.
+
+## API
+
+All endpoints are under `/api`.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/calculate` | Single policy premium and reserve schedule |
+| POST | `/api/calculate/batch` | Batch premiums |
+| POST | `/api/calculate/sensitivity` | Interest, age and coverage sensitivity |
+| POST | `/api/analyze/portfolio` | Portfolio summary |
+| GET | `/api/tables` | Loaded mortality tables |
+| GET | `/api/health` | Health check |
+| POST | `/api/vstar/montecarlo` | Monte Carlo loss distribution |
+| POST | `/api/vstar/risk` | VaR and CTE |
+| POST | `/api/vstar/rate-convert` | Nominal, effective and force of interest |
+| POST | `/api/vstar/reserve-retro` | Retrospective reserve at a policy year |
+
+Example:
+
 ```bash
-# Health check
-curl http://localhost:8080/health
-
-# List available tables
-curl http://localhost:8080/tables
-
-# Calculate premiums
-curl -X POST http://localhost:8080/calculate \
+curl -X POST http://localhost:8080/api/calculate \
   -H "Content-Type: application/json" \
-  -d @request.json
+  -d '{"age":35,"term":20,"sum_assured":100000,"interest_rate":0.05,"table_name":"male","product_type":"term_life"}'
 ```
 
----
+## Structure
 
-## 🎨 Customization
-
-### Expense Assumptions
-Modify the default expense structure in `backend/actuarial/core.go`:
-```go
-func DefaultExpenseStructure() ExpenseStructure {
-    return ExpenseStructure{
-        InitialExpenseRate: 0.03,   // 3% of sum assured
-        RenewalExpenseRate: 0.05,   // 5% of gross premium 
-        MaintenanceExpense: 50.0,   // BWP 50 per year
-        ProfitMargin:      0.15,    // 15% profit margin
-    }
-}
+```
+backend/actuarial/   calculation engine
+backend/data/        mortality tables (CSV)
+backend/handlers/    HTTP handlers
+backend/routes/      route definitions
+frontend/            index.html, css/style.css, js/app.js
+main.go              server entry point
 ```
 
-### Adding New Mortality Tables
-1. Add CSV file to `backend/data/` directory
-2. Update `tablesToLoad` slice in `backend/main.go`
-3. Restart server to load new table
-
----
-
-## 🚧 Future Enhancements
-
-### Completed Features
-- [x] **Product Types:** Term Life, Whole Life, Annuities ✅
-- [x] **Batch Processing:** Multiple policy calculations ✅
-- [x] **Interactive Charts:** Reserve visualization ✅
-- [x] **Portfolio Analysis:** Analyze multiple policies ✅
-- [x] **Sensitivity Analysis:** Test parameter changes ✅
-- [x] **Risk Factors:** Smoker status, health ratings ✅
-- [x] **Live Deployment:** Hosted on Render ✅
-
-### Short Term Goals
-- [ ] **Product Types:** Endowments
-- [ ] **Currency:** Multi-currency support
-- [ ] **Export:** PDF quotes, Excel reserve schedules
-
-### Medium Term  
-- [ ] **Database:** PostgreSQL for mortality tables and policies
-- [ ] **Authentication:** User management and API keys
-- [ ] **Validation:** Real-time form validation
-- [ ] **Charts:** Interactive premium and reserve visualizations
-
-### Long Term
-- [ ] **Stochastic Models:** Monte Carlo simulations
-- [ ] **Economic Scenarios:** Interest rate and inflation modeling
-- [ ] **Regulatory:** IFRS 17, Solvency II compliance
-- [ ] **Integration:** Core insurance system APIs
-
----
-
-## 📚 Actuarial Background
-
-This tool implements standard life insurance actuarial methods:
-
-**Net Premium Calculation:**
-```
-Net Premium = PV(Death Benefits) / PV(Premium Annuity)
-```
-
-**Reserve Calculation (Prospective Method):**
-```
-Reserve at time t = PV(Future Benefits) - PV(Future Net Premiums)
-```
-
-**Gross Premium:** Net premium plus expense loadings and profit margin
-
-For more details, see standard actuarial texts like Bowers et al. or Dickson et al.
-
----
-
-## 📊 Example Calculation
-
-**Input:**
-- Male, age 35
-- 10-year term life policy
-- BWP 100,000 sum assured  
-- 5% interest rate
-
-**Output:**
-- **Net Premium:** BWP 456.78 (pure risk premium)
-- **Gross Premium:** BWP 589.32 (includes expenses and profit)
-- **Reserves:** Calculated for each policy year
-
----
-
+Premiums use the equivalence principle; gross premiums add expenses and profit. Reserves are calculated prospectively, with a retrospective check. The UI is educational and not for commercial decisions.

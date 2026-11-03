@@ -1,27 +1,20 @@
 # Actuworry Frontend
 
-Web interface for actuarial calculations.
+Static frontend served directly by the Go server. No build step.
 
 ## Structure
 
 ```
 frontend/
-├── components/     # Reusable UI components
-├── css/           # Stylesheets
-├── js/            # JavaScript modules
-└── index.html     # Main application page
+├── css/style.css   # Design system + layout
+├── js/app.js      # Alpine component and Chart.js renderers
+└── index.html     # App shell and calculator panels
 ```
-
-## Features
-
-- Single premium calculations
-- Batch processing
-- Sensitivity analysis
-- Portfolio analysis
-- Interactive charts and visualizations
 
 ## Development
 
-The frontend is served directly by the Go backend server. No build process required.
+```bash
+make run
+```
 
-Access at: http://localhost:8080
+Open http://localhost:8080. The UI calls the API under `/api`.

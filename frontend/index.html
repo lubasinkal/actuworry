@@ -1,1258 +1,801 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Actuworry | Actuarial Platform</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --parchment: #f5f4ed;
-            --ivory: #faf9f5;
-            --near-black: #141413;
-            --terracotta: #c96442;
-            --coral: #d97757;
-            --warm-sand: #e8e6dc;
-            --dark-surface: #30302e;
-            --charcoal: #4d4c48;
-            --olive: #5e5d59;
-            --stone: #87867f;
-            --border-cream: #f0eee6;
-        }
-        body { 
-            font-family: 'Inter', system-ui, sans-serif; 
-            background: var(--parchment);
-            color: var(--near-black);
-        }
-        .font-serif { font-family: 'Playfair Display', Georgia, serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-        [x-cloak] { display: none !important; }
-        .card { background: var(--ivory); border: 1px solid var(--border-cream); border-radius: 12px; }
-        .card-elevated { box-shadow: rgba(0,0,0,0.05) 0px 4px 24px; }
-        .btn-primary { background: var(--terracotta); color: var(--ivory); border-radius: 12px; padding: 10px 20px; font-weight: 500; transition: all 0.2s; }
-        .btn-primary:hover { background: var(--coral); }
-        .btn-secondary { background: var(--warm-sand); color: var(--charcoal); border-radius: 8px; padding: 8px 16px; font-weight: 500; }
-        .btn-secondary:hover { background: #ddd9d0; }
-        .nav-link { color: var(--olive); font-weight: 500; padding: 8px 16px; border-radius: 8px; transition: all 0.2s; }
-        .nav-link:hover { color: var(--near-black); background: rgba(0,0,0,0.03); }
-        .nav-link.active { background: var(--terracotta); color: var(--ivory); }
-        .section-dark { background: var(--near-black); color: var(--ivory); }
-        .section-card { background: var(--dark-surface); border-radius: 16px; }
-        .text-brand { color: var(--terracotta); }
-        .border-warm { border-color: var(--border-cream); }
-        .tooltip { position: relative; }
-        .tooltip:hover .tooltip-content { opacity: 1; visibility: visible; }
-        .tooltip-content { opacity: 0; visibility: hidden; transition: all 0.2s; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0e0f11">
+  <meta name="description" content="Actuworry — life insurance pricing, valuation and reserving calculations in the browser, powered by Go and the v-star engine.">
+  <title>Actuworry — Actuarial calculations</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.6.1/dist/chart.umd.min.js"></script>
+  <script defer src="/js/app.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.17.5/dist/cdn.min.js"></script>
 </head>
 <body x-data="actuarialApp()">
-    <!-- Header -->
-    <header class="bg-white/80 backdrop-blur-sm border-b border-warm sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-[#c96442] rounded-xl flex items-center justify-center">
-                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="/" aria-label="Actuworry home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M5 19V9M12 19V5M19 19v-6"/>
+          </svg>
+        </span>
+        actuworry
+      </a>
+
+      <nav class="tabs" aria-label="Calculators">
+        <button type="button" class="tab" :class="{ 'is-active': tab === 'premium' }" @click="setTab('premium')">Premium</button>
+        <button type="button" class="tab" :class="{ 'is-active': tab === 'valuation' }" @click="setTab('valuation')">Valuation</button>
+        <button type="button" class="tab" :class="{ 'is-active': tab === 'reserves' }" @click="setTab('reserves')">Reserves</button>
+        <button type="button" class="tab" :class="{ 'is-active': tab === 'simulation' }" @click="setTab('simulation')">Simulation</button>
+        <button type="button" class="tab" :class="{ 'is-active': tab === 'risk' }" @click="setTab('risk')">Risk</button>
+        <button type="button" class="tab" :class="{ 'is-active': tab === 'rates' }" @click="setTab('rates')">Rates</button>
+        <button type="button" class="tab" :class="{ 'is-active': tab === 'benchmarks' }" @click="setTab('benchmarks')">Benchmarks</button>
+      </nav>
+
+      <a class="header-link" href="/api/health" target="_blank" rel="noreferrer">API</a>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Life insurance · Botswana</p>
+      <h1>Actuarial calculations, <em>without the spreadsheet.</em></h1>
+      <p>Price term and whole life policies, value annuities, and stress-test reserves against real mortality tables — right in the browser.</p>
+      <div class="hero-meta">
+        <span>Go + v-star engine</span>
+        <span>Mortality table driven</span>
+        <span>No third-party data sharing</span>
+      </div>
+    </div>
+  </section>
+
+  <main class="wrap">
+    <!-- Premium -->
+    <section class="panel" x-show="tab === 'premium'">
+      <div class="section-head">
+        <div>
+          <h2>Premium calculator</h2>
+          <p>Net and gross premiums from the equivalence principle, with expense loadings.</p>
+        </div>
+        <span class="badge">Term / whole life / annuity</span>
+      </div>
+
+      <div class="grid-main">
+        <form class="card" @submit.prevent="calculatePremium">
+          <div class="card-head">
+            <h3>Policy details</h3>
+            <p>Change any assumption and recalculate.</p>
+          </div>
+
+          <fieldset>
+            <legend>Insured</legend>
+            <div class="field-row">
+              <div class="field">
+                <label for="premium-age">Age</label>
+                <input id="premium-age" type="number" min="0" max="120" x-model.number="policy.age">
+              </div>
+              <div class="field">
+                <label for="premium-gender">Mortality table</label>
+                <select id="premium-gender" x-model="policy.table_name">
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="premium-smoker">Smoker</label>
+                <select id="premium-smoker" x-model="policy.smoker_status">
+                  <option value="">No</option>
+                  <option value="smoker">Yes</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="premium-health">Health</label>
+                <select id="premium-health" x-model="policy.health_rating">
+                  <option value="">Standard</option>
+                  <option value="preferred">Preferred</option>
+                  <option value="substandard">Substandard</option>
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset style="margin-top: 20px">
+            <legend>Policy</legend>
+            <div class="field">
+              <label for="premium-product">Product</label>
+              <select id="premium-product" x-model="policy.product_type">
+                <option value="term_life">Term life</option>
+                <option value="whole_life">Whole life</option>
+                <option value="immediate_annuity">Immediate annuity</option>
+                <option value="deferred_annuity">Deferred annuity</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="premium-cover">Sum assured / annual income (BWP)</label>
+              <input id="premium-cover" type="number" min="0" step="1000" x-model.number="policy.sum_assured">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="premium-term">Term (years)</label>
+                <input id="premium-term" type="number" min="0" max="100" x-model.number="policy.term">
+              </div>
+              <div class="field">
+                <label for="premium-rate">Interest rate (%)</label>
+                <input id="premium-rate" type="number" min="0" max="100" step="0.1" x-model.number="policy.interest_rate">
+              </div>
+            </div>
+            <div class="field" x-show="policy.product_type === 'deferred_annuity'">
+              <label for="premium-deferral">Deferral period (years)</label>
+              <input id="premium-deferral" type="number" min="0" max="100" x-model.number="policy.deferral_period">
+            </div>
+          </fieldset>
+
+          <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+            <span x-show="!loading">Calculate premium</span>
+            <span x-show="loading">Calculating…</span>
+          </button>
+        </form>
+
+        <div class="stack">
+          <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
+
+          <div class="empty" x-show="!premium">
+            <div>
+              <strong>No calculation yet</strong>
+              Enter policy details to see net premium, gross premium and the reserve schedule.
+            </div>
+          </div>
+
+          <div class="stack" x-show="premium">
+            <div class="card">
+              <div class="result-title">
+                <h3>Premium</h3>
+                <span class="badge" x-text="premium && premium.product_type ? premium.product_type.replaceAll('_', ' ') : ''"></span>
+              </div>
+              <div class="metric-grid">
+                <div class="metric">
+                  <p class="metric-label">Net premium</p>
+                  <p class="metric-value" x-text="money(premium && premium.net_premium)"></p>
+                  <p class="metric-note">Pure risk cost</p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">Gross premium</p>
+                  <p class="metric-value accent" x-text="money(premium && premium.gross_premium)"></p>
+                  <p class="metric-note">With expenses and profit</p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">Monthly</p>
+                  <p class="metric-value" x-text="money(premium && premium.gross_premium / 12)"></p>
+                  <p class="metric-note">If paid monthly</p>
+                </div>
+              </div>
+
+              <div class="dl" x-show="premium && premium.annual_payout">
+                <div>
+                  <dt>Annual payout</dt>
+                  <dd x-text="money(premium && premium.annual_payout)"></dd>
                 </div>
                 <div>
-                    <h1 class="font-serif text-2xl font-semibold">Actuworry</h1>
-                    <p class="text-sm text-[#5e5d59]">Powered by Go + v-star engine</p>
+                  <dt>Single premium required</dt>
+                  <dd x-text="money(premium && premium.total_premium_cost)"></dd>
                 </div>
+              </div>
+
+              <div class="dl" x-show="premium && premium.expenses">
+                <div>
+                  <dt>Initial expense rate</dt>
+                  <dd x-text="pct(premium && premium.expenses && premium.expenses.initial_expense_rate)"></dd>
+                </div>
+                <div>
+                  <dt>Renewal expense rate</dt>
+                  <dd x-text="pct(premium && premium.expenses && premium.expenses.renewal_expense_rate)"></dd>
+                </div>
+                <div>
+                  <dt>Maintenance expense</dt>
+                  <dd x-text="money(premium && premium.expenses && premium.expenses.maintenance_expense)"></dd>
+                </div>
+                <div>
+                  <dt>Profit margin</dt>
+                  <dd x-text="pct(premium && premium.expenses && premium.expenses.profit_margin)"></dd>
+                </div>
+              </div>
+
+              <div class="dl" x-show="premium && premium.risk_assessment && premium.risk_assessment.risk_multiplier">
+                <div>
+                  <dt>Risk multiplier</dt>
+                  <dd x-text="num(premium && premium.risk_assessment && premium.risk_assessment.risk_multiplier) + '×'"></dd>
+                </div>
+                <div>
+                  <dt>Annual mortality</dt>
+                  <dd x-text="pct(premium && premium.risk_assessment && premium.risk_assessment.annual_death_probability, 3)"></dd>
+                </div>
+                <div>
+                  <dt>Expected lifetime</dt>
+                  <dd x-text="num(premium && premium.risk_assessment && premium.risk_assessment.expected_lifetime_years, 1) + ' years'"></dd>
+                </div>
+              </div>
             </div>
-            <nav class="flex gap-1">
-                <template x-for="t in tabs" :key="t.id">
-                    <button @click="activeTab = t.id" 
-                            :class="activeTab === t.id ? 'active' : 'nav-link'"
-                            class="nav-link" x-text="t.name"></button>
-                </template>
-            </nav>
+
+            <div class="card" x-show="premium && premium.reserve_schedule && premium.reserve_schedule.length">
+              <div class="card-head-row">
+                <h3>Reserve schedule</h3>
+                <span>Prospective, end of policy year</span>
+              </div>
+              <div class="chart">
+                <canvas id="reserveChart"></canvas>
+              </div>
+              <div class="table-wrap" style="margin-top: 14px">
+                <table>
+                  <thead>
+                    <tr><th>Year</th><th class="num">Reserve (BWP)</th></tr>
+                  </thead>
+                  <tbody>
+                    <template x-for="(value, i) in (premium && premium.reserve_schedule ? premium.reserve_schedule : [])" :key="i">
+                      <tr>
+                        <td x-text="i"></td>
+                        <td class="num" x-text="num(value)"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
-    </header>
+      </div>
+    </section>
 
-    <main class="max-w-7xl mx-auto px-6 py-8">
-        <!-- Hero Section -->
-        <section class="mb-12">
-            <div class="text-center py-12">
-                <h2 class="font-serif text-5xl font-semibold mb-4 leading-tight">Actuarial Science<br><span class="text-brand">Demystified</span></h2>
-                <p class="text-xl text-[#5e5d59] max-w-2xl mx-auto mb-8">Interactive platform for life insurance calculations, powered by Go's high-performance v-star actuarial engine.</p>
-                <div class="flex justify-center gap-4">
-                    <button @click="activeTab = 'pricing'" class="btn-primary">Try Premium Calculator</button>
-                    <button @click="activeTab = 'simulation'" class="btn-secondary">View Simulations</button>
-                </div>
-            </div>
-            
-            <!-- Quick Stats -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                <div class="card p-6 text-center">
-                    <p class="text-3xl font-bold text-brand">28M+</p>
-                    <p class="text-sm text-[#5e5d59]">Calculations/sec</p>
-                </div>
-                <div class="card p-6 text-center">
-                    <p class="text-3xl font-bold text-brand">100K+</p>
-                    <p class="text-sm text-[#5e5d59]">Monte Carlo paths/sec</p>
-                </div>
-                <div class="card p-6 text-center">
-                    <p class="text-3xl font-bold text-brand">0ms</p>
-                    <p class="text-sm text-[#5e5d59]">Cold start latency</p>
-                </div>
-                <div class="card p-6 text-center">
-                    <p class="text-3xl font-bold text-brand">10-50x</p>
-                    <p class="text-sm text-[#5e5d59]">Faster than Excel</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Premium Calculator -->
-        <section x-show="activeTab === 'pricing'" x-cloak>
-            <div class="grid lg:grid-cols-3 gap-6">
-                <!-- Form -->
-                <div class="card p-6">
-                    <h2 class="font-serif text-xl font-semibold mb-2">Policy Details</h2>
-                    <p class="text-sm text-[#5e5d59] mb-4">Enter policy parameters to calculate premiums.</p>
-                    
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs text-[#5e5d59] mb-1">Insured Age</label>
-                                <input type="number" x-model.number="policy.age" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-[#5e5d59] mb-1">Gender</label>
-                                <select x-model="policy.table_name" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                                    <option value="male">Male</option>
-                                    <option value="female">Female</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Product Type</label>
-                            <select x-model="policy.product_type" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                                <option value="term_life">Term Life</option>
-                                <option value="whole_life">Whole Life</option>
-                                <option value="endowment">Endowment</option>
-                            </select>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs text-[#5e5d59] mb-1">Sum Assured (BWP)</label>
-                                <input type="number" x-model.number="policy.sum_assured" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-[#5e5d59] mb-1">Term (years)</label>
-                                <input type="number" x-model.number="policy.term" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs text-[#5e5d59] mb-1">Interest Rate (%)</label>
-                                <input type="number" x-model.number="policy.interest_rate" step="0.1" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-[#5e5d59] mb-1">Smoker?</label>
-                                <select x-model="policy.smoker_status" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                                    <option value="">No</option>
-                                    <option value="smoker">Yes</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button @click="calculatePremium()" :disabled="loading" class="w-full mt-6 btn-primary">
-                        <span x-show="!loading">Calculate Premium</span>
-                        <span x-show="loading">Calculating...</span>
-                    </button>
-                </div>
-                
-                <!-- Results -->
-                <div class="lg:col-span-2 space-y-6">
-                    <!-- Premium Cards -->
-                    <div x-show="pricingResult" class="grid sm:grid-cols-3 gap-4">
-                        <div class="card p-6">
-                            <p class="text-sm text-[#5e5d59] mb-1">Net Premium</p>
-                            <p class="text-2xl font-bold text-brand" x-text="'BWP ' + formatNumber(pricingResult.net_premium)"></p>
-                            <p class="text-xs text-[#87867f] mt-1">Pure risk cost</p>
-                        </div>
-                        <div class="card p-6">
-                            <p class="text-sm text-[#5e5d59] mb-1">Gross Premium</p>
-                            <p class="text-2xl font-bold" x-text="'BWP ' + formatNumber(pricingResult.gross_premium)"></p>
-                            <p class="text-xs text-[#87867f] mt-1">With expenses + profit</p>
-                        </div>
-                        <div class="card p-6">
-                            <p class="text-sm text-[#5e5d59] mb-1">Monthly Cost</p>
-                            <p class="text-2xl font-bold" x-text="'BWP ' + formatNumber(pricingResult.gross_premium / 12)"></p>
-                            <p class="text-xs text-[#87867f] mt-1">If paid monthly</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Reserve Chart -->
-                    <div x-show="pricingResult && pricingResult.reserve_schedule" class="card p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-semibold">Reserve Schedule Over Policy Term</h3>
-                            <span class="tooltip text-xs text-[#5e5d59] cursor-help">
-                                ℹ What is this?
-                                <span class="tooltip-content absolute bottom-full left-0 mb-2 w-64 p-3 bg-[#141413] text-white text-xs rounded-lg">
-                                    Policy reserves represent the insurer's accumulated liability. As premiums are paid and claims potentially occur, the reserve grows (or shrinks). This chart shows how the reserve value evolves over the policy term.
-                                </span>
-                            </span>
-                        </div>
-                        <div class="h-64">
-                            <canvas id="reserveChart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- Mortality Visualization -->
-                    <div x-show="pricingResult" class="card p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="font-semibold">Death Probability by Age</h3>
-                            <span class="tooltip text-xs text-[#5e5d59] cursor-help">
-                                ℹ What is qx?
-                                <span class="tooltip-content absolute bottom-full left-0 mb-2 w-64 p-3 bg-[#141413] text-white text-xs rounded-lg">
-                                    qx is the probability that a person aged x will die within one year. It's derived from mortality tables based on historical data. This visualization shows how mortality risk increases with age.
-                                </span>
-                            </span>
-                        </div>
-                        <div class="h-48">
-                            <canvas id="mortalityChart"></canvas>
-                        </div>
-                        <p class="text-xs text-[#87867f] mt-2">Data source: CSO таблицы | Age x to x+<span x-text="policy.term"></span></p>
-                    </div>
-
-                    <!-- No Result State -->
-                    <div x-show="!pricingResult" class="card p-12 text-center">
-                        <div class="w-16 h-16 mx-auto mb-4 bg-[#e8e6dc] rounded-full flex items-center justify-center">
-                            <svg class="w-8 h-8 text-[#87867f]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01"/></svg>
-                        </div>
-                        <p class="text-[#5e5d59]">Enter policy details and calculate to see premiums</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Valuations -->
-        <section x-show="activeTab === 'valuation'" x-cloak>
-            <div class="grid lg:grid-cols-2 gap-6">
-                <!-- PV Calculator -->
-                <div class="card p-6">
-                    <h2 class="font-serif text-xl font-semibold mb-2">Present Value Calculator</h2>
-                    <p class="text-sm text-[#5e5d59] mb-4">Calculate present value of future cash flows using discount factor.</p>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Future Amount (BWP)</label>
-                            <input type="number" x-model.number="pvConfig.amount" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            <p class="text-xs text-[#87867f] mt-1">The amount you'll receive in the future</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Term (years)</label>
-                            <input type="number" x-model.number="pvConfig.term" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Interest Rate (%)</label>
-                            <input type="number" x-model.number="pvConfig.rate" step="0.1" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            <p class="text-xs text-[#87867f] mt-1">Annual effective interest rate</p>
-                        </div>
-                        <button @click="calculatePV()" class="w-full btn-primary mt-4">Calculate PV</button>
-                    </div>
-                    
-                    <!-- PV Result with Visualization -->
-                    <div x-show="pvResult" class="mt-6">
-                        <div class="card p-4 bg-[#f5f4ed]">
-                            <p class="text-sm text-[#5e5d59]">Present Value</p>
-                            <p class="text-3xl font-bold text-brand" x-text="'BWP ' + formatNumber(pvResult)"></p>
-                        </div>
-                        <div class="h-40 mt-4">
-                            <canvas id="pvChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Annuity Calculator -->
-                <div class="card p-6">
-                    <h2 class="font-serif text-xl font-semibold mb-2">Annuity Calculator</h2>
-                    <p class="text-sm text-[#5e5d59] mb-4">Calculate annuity values for retirement planning.</p>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Annuitant Age</label>
-                            <input type="number" x-model.number="annuityConfig.age" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Annual Payment (BWP)</label>
-                            <input type="number" x-model.number="annuityConfig.amount" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Deferral Period (years)</label>
-                            <input type="number" x-model.number="annuityConfig.deferral" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            <p class="text-xs text-[#87867f] mt-1">Years to wait before payments start</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Interest Rate (%)</label>
-                            <input type="number" x-model.number="annuityConfig.rate" step="0.1" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                        </div>
-                        <button @click="calculateAnnuity()" class="w-full btn-primary mt-4">Calculate Annuity</button>
-                    </div>
-                    
-                    <div x-show="annuityResult" class="mt-6 space-y-3">
-                        <div class="p-4 bg-[#f5f4ed] rounded-lg">
-                            <p class="text-sm text-[#5e5d59]">Single Premium Required</p>
-                            <p class="text-2xl font-bold text-brand" x-text="'BWP ' + formatNumber(annuityResult.total_premium_cost)"></p>
-                        </div>
-                        <div class="p-3 bg-[#f5f4ed] rounded-lg flex justify-between items-center">
-                            <span class="text-[#5e5d59]">Annual Payout</span>
-                            <span class="font-semibold" x-text="'BWP ' + formatNumber(annuityResult.annual_payout)"></span>
-                        </div>
-                        <div class="h-40">
-                            <canvas id="annuityChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Educational Section -->
-            <div class="mt-8 grid lg:grid-cols-2 gap-6">
-                <div class="card p-6">
-                    <h3 class="font-semibold mb-3">Understanding Present Value</h3>
-                    <p class="text-sm text-[#5e5d59] mb-4">Present value (PV) discounts future money back to today. The formula is:</p>
-                    <div class="bg-[#141413] text-white p-4 rounded-lg font-mono text-sm mb-4">
-                        PV = FV / (1 + i)^n
-                    </div>
-                    <p class="text-sm text-[#5e5d59]">Where FV is future value, i is interest rate, n is years. This is fundamental to all actuarial calculations.</p>
-                </div>
-                <div class="card p-6">
-                    <h3 class="font-semibold mb-3">What is an Annuity?</h3>
-                    <p class="text-sm text-[#5e5d59] mb-2">An annuity is a series of equal payments made at regular intervals.</p>
-                    <ul class="text-sm text-[#5e5d59] space-y-2">
-                        <li>• <strong>Whole life annuity</strong> - payments for life</li>
-                        <li>• <strong>Temporary annuity</strong> - payments for fixed term</li>
-                        <li>• <strong>Deferred annuity</strong> - payments start in future</li>
-                        <li>• <strong>Annuity-due</strong> - payments at beginning of period</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Reserves -->
-        <section x-show="activeTab === 'reserves'" x-cloak>
-            <div class="grid lg:grid-cols-2 gap-6">
-                <!-- Net Premium Reserve -->
-                <div class="card p-6">
-                    <h2 class="font-serif text-xl font-semibold mb-2">Net Premium Reserve (Prospective)</h2>
-                    <p class="text-sm text-[#5e5d59] mb-4">Future benefits minus future premiums (at premium rate).</p>
-                    
-                    <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs text-[#5e5d59] mb-1">Policy Year</label>
-                                <input type="number" x-model.number="reserveConfig.year" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            </div>
-                            <div>
-                                <label class="block text-xs text-[#5e5d59] mb-1">Sum Assured</label>
-                                <input type="number" x-model.number="reserveConfig.sum_assured" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                            </div>
-                        </div>
-                        <button @click="calculateNPR()" class="w-full btn-primary">Calculate Reserve</button>
-                    </div>
-
-                    <div x-show="retroResult" class="mt-6 space-y-4">
-                        <div class="h-56">
-                            <canvas id="reserveTimeChart"></canvas>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="p-3 bg-[#f5f4ed] rounded-lg">
-                                <p class="text-xs text-[#5e5d59]">At Year <span x-text="reserveConfig.year"></span></p>
-                                <p class="font-semibold" x-text="'BWP ' + formatNumber(retroResult.reserve)"></p>
-                            </div>
-                            <div class="p-3 bg-[#f5f4ed] rounded-lg">
-                                <p class="text-xs text-[#5e5d59]">Policy Duration</p>
-                                <p class="font-semibold"><span x-text="reserveConfig.year"></span> years</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Retrospective Reserve -->
-                <div class="card p-6">
-                    <h2 class="font-serif text-xl font-semibold mb-2">Retrospective Reserve</h2>
-                    <p class="text-sm text-[#5e5d59] mb-4">Accumulated premiums minus accumulated claims.</p>
-                    
-                    <div x-show="retroResult" class="space-y-4">
-                        <div class="p-4 bg-[#f5f4ed] rounded-lg">
-                            <p class="text-sm text-[#5e5d59]">Accumulated Premiums</p>
-                            <p class="text-xl font-bold" x-text="'BWP ' + formatNumber(retroResult.accumulated_premium)"></p>
-                        </div>
-                        <div class="p-4 bg-[#f5f4ed] rounded-lg">
-                            <p class="text-sm text-[#5e5d59]">Accumulated Claims</p>
-                            <p class="text-xl font-bold" x-text="'BWP ' + formatNumber(retroResult.accumulated_claims)"></p>
-                        </div>
-                        <div class="p-4 bg-[#c96442] rounded-lg">
-                            <p class="text-sm text-[#faf9f5]">Reserve (Asset - Liability)</p>
-                            <p class="text-2xl font-bold text-white" x-text="'BWP ' + formatNumber(retroResult.reserve)"></p>
-                        </div>
-                    </div>
-                    
-                    <div x-show="!retroResult" class="p-8 text-center text-[#87867f]">
-                        <p>Calculate a premium first to see reserves</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Educational -->
-            <div class="mt-6 card p-6">
-                <h3 class="font-semibold mb-3">Understanding Policy Reserves</h3>
-                <div class="grid md:grid-cols-3 gap-4">
-                    <div>
-                        <p class="font-medium text-brand mb-1">Prospective Method</p>
-                        <p class="text-sm text-[#5e5d59]">Looks forward: Expected future benefits minus expected future premiums.</p>
-                    </div>
-                    <div>
-                        <p class="font-medium text-brand mb-1">Retrospective Method</p>
-                        <p class="text-sm text-[#5e5d59]">Looks backward: Accumulated premiums received minus claims paid.</p>
-                    </div>
-                    <div>
-                        <p class="font-medium text-brand mb-1">Equivalence</p>
-                        <p class="text-sm text-[#5e5d59]">Both methods should give the same result! This is the equivalence principle.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Simulations -->
-        <section x-show="activeTab === 'simulation'" x-cloak>
-            <div class="grid lg:grid-cols-3 gap-6">
-                <!-- Monte Carlo Config -->
-                <div class="card p-6">
-                    <h2 class="font-serif text-xl font-semibold mb-2">Monte Carlo Simulation</h2>
-                    <p class="text-sm text-[#5e5d59] mb-4">Generate stochastic interest rate paths using Geometric Brownian Motion.</p>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Number of Paths</label>
-                            <input type="number" x-model.number="mcConfig.num_paths" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Drift (μ) - Expected Return</label>
-                            <input type="number" x-model.number="mcConfig.drift" step="0.01" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2" placeholder="0.02">
-                            <p class="text-xs text-[#87867f] mt-1">Annual expected return rate</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Volatility (σ)</label>
-                            <input type="number" x-model.number="mcConfig.vol" step="0.01" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2" placeholder="0.15">
-                            <p class="text-xs text-[#87867f] mt-1">Standard deviation of returns</p>
-                        </div>
-                        <button @click="runMonteCarlo()" :disabled="loading" class="w-full btn-primary mt-4">
-                            <span x-show="!loading">Run Simulation</span>
-                            <span x-show="loading">Simulating <span x-text="mcConfig.num_paths"></span> paths...</span>
-                        </button>
-                    </div>
-                    
-                    <!-- GBM Formula -->
-                    <div class="mt-6 p-3 bg-[#141413] text-white rounded-lg">
-                        <p class="text-xs mb-1">Geometric Brownian Motion:</p>
-                        <p class="text-xs font-mono">dS = μSdt + σSdW</p>
-                    </div>
-                </div>
-                
-                <!-- Results -->
-                <div class="lg:col-span-2 space-y-6">
-                    <!-- Metrics -->
-                    <div x-show="mcResult" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div class="card p-4">
-                            <p class="text-xs text-[#5e5d59] mb-1">Mean</p>
-                            <p class="text-xl font-bold" x-text="(mcResult.mean * 100).toFixed(2) + '%'"></p>
-                        </div>
-                        <div class="card p-4">
-                            <p class="text-xs text-[#5e5d59] mb-1">Std Dev</p>
-                            <p class="text-xl font-bold" x-text="(mcResult.std_dev * 100).toFixed(2) + '%'"></p>
-                        </div>
-                        <div class="card p-4">
-                            <p class="text-xs text-[#5e5d59] mb-1">VaR 95%</p>
-                            <p class="text-xl font-bold text-brand" x-text="(mcResult.var_95 * 100).toFixed(2) + '%'"></p>
-                            <p class="text-xs text-[#87867f]">5% worst case</p>
-                        </div>
-                        <div class="card p-4">
-                            <p class="text-xs text-[#5e5d59] mb-1">CTE 95%</p>
-                            <p class="text-xl font-bold" x-text="(mcResult.cte_95 * 100).toFixed(2) + '%'"></p>
-                            <p class="text-xs text-[#87867f]">Avg of worst 5%</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Distribution Chart -->
-                    <div x-show="mcResult" class="card p-6">
-                        <h3 class="font-semibold mb-4">Distribution of Final Returns</h3>
-                        <div class="h-64">
-                            <canvas id="mcChart"></canvas>
-                        </div>
-                    </div>
-                    
-                    <!-- Path Visualization -->
-                    <div x-show="mcResult" class="card p-6">
-                        <h3 class="font-semibold mb-4">Sample Interest Rate Paths (first 100)</h3>
-                        <div class="h-48">
-                            <canvas id="mcPathsChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div x-show="!mcResult" class="card p-12 text-center">
-                        <p class="text-[#5e5d59]">Configure and run Monte Carlo simulation to see results</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Educational -->
-            <div class="mt-6 card p-6">
-                <h3 class="font-semibold mb-3">Understanding Monte Carlo in Actuarial Science</h3>
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-sm text-[#5e5d59] mb-2">Monte Carlo simulation models uncertainty by generating thousands of random scenarios. For insurance:</p>
-                        <ul class="text-sm text-[#5e5d59] space-y-1">
-                            <li>• Interest rate risk modeling</li>
-                            <li>• Asset-liability management</li>
-                            <li>• Solvency capital requirements</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <p class="text-sm text-[#5e5d59] mb-2"><strong>VaR (Value at Risk)</strong> - Maximum expected loss at a confidence level.</p>
-                        <p class="text-sm text-[#5e5d59]"><strong>CTE (Conditional Tail Expectation)</strong> - Average loss in worst scenarios.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Risk Analysis -->
-        <section x-show="activeTab === 'risk'" x-cloak>
-            <div class="grid lg:grid-cols-2 gap-6">
-                <!-- VaR Calculator -->
-                <div class="card p-6">
-                    <h2 class="font-serif text-xl font-semibold mb-2">VaR / CTE Calculator</h2>
-                    <p class="text-sm text-[#5e5d59] mb-4">Calculate Value at Risk and Conditional Tail Expectation from loss distribution.</p>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Loss Distribution (comma-separated)</label>
-                            <textarea x-model="riskInput" rows="4" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2 font-mono text-sm" placeholder="100, 250, 180, 420, 95, 310, 200, 150, 280, 175"></textarea>
-                            <p class="text-xs text-[#87867f] mt-1">Enter historical losses or simulated outcomes</p>
-                        </div>
-                        <button @click="calculateRisk()" class="w-full btn-primary">Compute Risk Metrics</button>
-                    </div>
-                </div>
-                
-                <!-- Results -->
-                <div x-show="riskResult" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="card p-6">
-                            <p class="text-sm text-[#5e5d59] mb-1">VaR 95%</p>
-                            <p class="text-3xl font-bold text-brand" x-text="formatNumber(riskResult.var_95)"></p>
-                            <p class="text-xs text-[#87867f] mt-1">5% probability exceedance</p>
-                        </div>
-                        <div class="card p-6">
-                            <p class="text-sm text-[#5e5d59] mb-1">VaR 99%</p>
-                            <p class="text-3xl font-bold" x-text="formatNumber(riskResult.var_99)"></p>
-                            <p class="text-xs text-[#87867f] mt-1">1% probability exceedance</p>
-                        </div>
-                        <div class="card p-6">
-                            <p class="text-sm text-[#5e5d59] mb-1">CTE 95%</p>
-                            <p class="text-3xl font-bold" x-text="formatNumber(riskResult.cte_95)"></p>
-                            <p class="text-xs text-[#87867f] mt-1">Average of worst 5%</p>
-                        </div>
-                        <div class="card p-6">
-                            <p class="text-sm text-[#5e5d59] mb-1">CTE 99%</p>
-                            <p class="text-3xl font-bold" x-text="formatNumber(riskResult.cte_99)"></p>
-                            <p class="text-xs text-[#87867f] mt-1">Average of worst 1%</p>
-                        </div>
-                    </div>
-                    
-                    <!-- Risk Distribution -->
-                    <div class="card p-6">
-                        <h3 class="font-semibold mb-4">Loss Distribution</h3>
-                        <div class="h-48">
-                            <canvas id="riskChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <div x-show="!riskResult" class="card p-12 text-center lg:col-span-2">
-                    <p class="text-[#5e5d59]">Enter loss distribution to compute risk metrics</p>
-                </div>
-            </div>
-
-            <!-- Educational -->
-            <div class="mt-6 card p-6 section-dark">
-                <h3 class="font-semibold mb-3 text-[#faf9f5]">Understanding Risk Measures</h3>
-                <div class="grid md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                        <p class="font-medium text-brand mb-1">VaR 95%</p>
-                        <p class="text-[#b0aea5]">Loss that will only be exceeded 5% of the time. Regulatory standard for capital.</p>
-                    </div>
-                    <div>
-                        <p class="font-medium text-brand mb-1">VaR 99%</p>
-                        <p class="text-[#b0aea5]">Stricter standard - only 1% chance of exceedance. Used for solvency.</p>
-                    </div>
-                    <div>
-                        <p class="font-medium text-brand mb-1">CTE</p>
-                        <p class="text-[#b0aea5]">Expected loss given that we exceed VaR. More sensitive to tail risk.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Rate Converter -->
-        <section x-show="activeTab === 'rates'" x-cloak>
-            <div class="grid lg:grid-cols-2 gap-6">
-                <div class="card p-6">
-                    <h2 class="font-serif text-xl font-semibold mb-2">Rate Converter</h2>
-                    <p class="text-sm text-[#5e5d59] mb-4">Convert between nominal, effective, and force of interest rates.</p>
-                    
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Nominal Rate (%)</label>
-                            <input type="number" x-model.number="rateInput.nominal" step="0.01" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                        </div>
-                        <div>
-                            <label class="block text-xs text-[#5e5d59] mb-1">Compounding Frequency (m)</label>
-                            <select x-model.number="rateInput.compounding" class="w-full bg-[#f5f4ed] border border-[#e8e6dc] rounded-lg px-3 py-2">
-                                <option value="1">Annual (m=1)</option>
-                                <option value="2">Semi-annual (m=2)</option>
-                                <option value="4">Quarterly (m=4)</option>
-                                <option value="12">Monthly (m=12)</option>
-                                <option value="365">Daily (m=365)</option>
-                            </select>
-                        </div>
-                        <button @click="convertRate()" class="w-full btn-primary mt-4">Convert</button>
-                    </div>
-                </div>
-                
-                <!-- Results with Visual -->
-                <div x-show="rateResult" class="space-y-4">
-                    <div class="card p-8 text-center">
-                        <p class="text-sm text-[#5e5d59] mb-1">Effective Annual Rate</p>
-                        <p class="text-5xl font-bold text-brand" x-text="(rateResult.effective_rate * 100).toFixed(4) + '%'"></p>
-                    </div>
-                    <div class="card p-8 text-center">
-                        <p class="text-sm text-[#5e5d59] mb-1">Force of Interest (δ)</p>
-                        <p class="text-4xl font-bold" x-text="rateResult.force_of_interest.toFixed(6)"></p>
-                        <p class="text-xs text-[#87867f] mt-1">Continuous compounding rate</p>
-                    </div>
-                    
-                    <!-- Visual comparison -->
-                    <div class="card p-6">
-                        <h3 class="font-semibold mb-4">Rate by Compounding Frequency</h3>
-                        <div class="h-48">
-                            <canvas id="rateCompChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <div x-show="!rateResult" class="card p-12 text-center lg:col-span-2">
-                    <p class="text-[#5e5d59]">Enter a nominal rate to convert</p>
-                </div>
-            </div>
-
-            <!-- Educational -->
-            <div class="mt-6 grid lg:grid-cols-3 gap-4">
-                <div class="card p-4">
-                    <p class="font-medium text-brand mb-1">Nominal Rate (i^(m))</p>
-                    <p class="text-sm text-[#5e5d59]">Stated rate with m compounding periods per year. i^(m)/m is the rate per period.</p>
-                </div>
-                <div class="card p-4">
-                    <p class="font-medium text-brand mb-1">Effective Rate (i)</p>
-                    <p class="text-sm text-[#5e5d59]">Actual yearly return when interest is compounded. (1 + i^(m)/m)^m - 1</p>
-                </div>
-                <div class="card p-4">
-                    <p class="font-medium text-brand mb-1">Force of Interest (δ)</p>
-                    <p class="text-sm text-[#5e5d59]">Continuous compounding limit. δ = ln(1 + i)</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Tab: Performance -->
-        <section x-show="activeTab === 'performance'" x-cloak>
-            <div class="section-card p-8">
-                <h2 class="font-serif text-2xl font-semibold mb-2 text-[#faf9f5]">v-star Engine Performance</h2>
-                <p class="text-[#b0aea5] mb-6">Benchmark comparisons: Go + v-star vs traditional actuarial tools.</p>
-                
-                <div class="grid sm:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-[#30302e] p-6 rounded-xl border border-[#4d4c48]">
-                        <p class="text-sm text-[#b0aea5] mb-2">CSV Parsing</p>
-                        <p class="text-4xl font-bold text-brand">28M+</p>
-                        <p class="text-xs text-[#87867f]">rows/sec</p>
-                        <p class="text-xs text-[#87867f] mt-2">vs 500K in Python</p>
-                    </div>
-                    <div class="bg-[#30302e] p-6 rounded-xl border border-[#4d4c48]">
-                        <p class="text-sm text-[#b0aea5] mb-2">Monte Carlo</p>
-                        <p class="text-4xl font-bold text-brand">100K+</p>
-                        <p class="text-xs text-[#87867f]">paths/sec</p>
-                        <p class="text-xs text-[#87867f] mt-2">vs 10K in R</p>
-                    </div>
-                    <div class="bg-[#30302e] p-6 rounded-xl border border-[#4d4c48]">
-                        <p class="text-sm text-[#b0aea5] mb-2">PV Calculations</p>
-                        <p class="text-4xl font-bold text-brand">28M+</p>
-                        <p class="text-xs text-[#87867f]">calcs/sec</p>
-                        <p class="text-xs text-[#87867f] mt-2">vs 1M in Excel</p>
-                    </div>
-                </div>
-
-                <!-- Performance Chart -->
-                <div class="bg-[#30302e] p-6 rounded-xl border border-[#4d4c48] mb-6">
-                    <h3 class="font-semibold mb-4 text-[#faf9f5]">Benchmark Comparison</h3>
-                    <div class="h-64">
-                        <canvas id="perfChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Why Go -->
-                <div class="bg-[#30302e] p-6 rounded-xl border border-[#4d4c48]">
-                    <h3 class="font-semibold mb-4 text-[#faf9f5]">Why Go + v-star?</h3>
-                    <div class="grid md:grid-cols-2 gap-4 text-sm">
-                        <ul class="space-y-2 text-[#b0aea5]">
-                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Zero dependencies (standard library only)</li>
-                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Single binary deployment</li>
-                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Built-in concurrency (goroutines)</li>
-                        </ul>
-                        <ul class="space-y-2 text-[#b0aea5]">
-                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> 10-50x faster than Excel VBA</li>
-                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Memory efficient streaming</li>
-                            <li class="flex items-center gap-2"><span class="text-brand">✓</span> Deterministic calculations</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Technical Details -->
-            <div class="mt-6 card p-6">
-                <h3 class="font-semibold mb-3">v-star Engine Architecture</h3>
-                <div class="grid md:grid-cols-2 gap-6">
-                    <div>
-                        <p class="text-sm text-[#5e5d59] mb-2">The v-star engine uses Go for high-performance actuarial calculations:</p>
-                        <ul class="text-sm text-[#5e5d59] space-y-1">
-                            <li>• Streaming CSV parsing with bufio</li>
-                            <li>• Parallel mortality table lookups</li>
-                            <li>• SIMD-optimized PV calculations</li>
-                            <li>• Lock-free Monte Carlo generation</li>
-                        </ul>
-                    </div>
-                    <div class="bg-[#141413] text-white p-4 rounded-lg font-mono text-sm">
-                        <p class="text-[#87867f]">// Example: Parallel reserve calculation</p>
-                        <p>func CalculateReserves(policies []Policy) []Reserve {</p>
-                        <p class="pl-4">results := make([]Reserve, len(policies))</p>
-                        <p class="pl-4">sem := semaphore.NewWeighted(50)</p>
-                        <p class="pl-4">for i := range policies {</p>
-                        <p class="pl-8">sem.Acquire(ctx, 1)</p>
-                        <p class="pl-8">go func(i) {</p>
-                        <p class="pl-12">defer sem.Release(1)</p>
-                        <p class="pl-12">results[i] = compute(policies[i])</p>
-                        <p class="pl-8">}(i)</p>
-                        <p class="pl-4">}</p>
-                        <p class="pl-4">return results</p>
-                        <p>}</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <!-- Footer -->
-    <footer class="border-t border-warm mt-16 py-8">
-        <div class="max-w-7xl mx-auto px-6 text-center text-sm text-[#87867f]">
-            <p>Actuworry — Actuarial platform built with Go + v-star engine</p>
-            <p class="mt-2">Educational use only. Not for commercial decisions.</p>
+    <!-- Valuation -->
+    <section class="panel" x-show="tab === 'valuation'" x-cloak>
+      <div class="section-head">
+        <div>
+          <h2>Valuation</h2>
+          <p>Discount future money, or price a deferred annuity.</p>
         </div>
-    </footer>
+      </div>
 
-    <script>
-        function actuarialApp() {
-            return {
-                activeTab: 'pricing',
-                loading: false,
-                tabs: [
-                    { id: 'pricing', name: 'Premium' },
-                    { id: 'valuation', name: 'Valuation' },
-                    { id: 'reserves', name: 'Reserves' },
-                    { id: 'simulation', name: 'Simulation' },
-                    { id: 'risk', name: 'Risk' },
-                    { id: 'rates', name: 'Rates' },
-                    { id: 'performance', name: 'Performance' }
-                ],
-                
-                policy: { age: 35, table_name: 'male', product_type: 'term_life', sum_assured: 100000, term: 20, interest_rate: 5, smoker_status: '' },
-                pricingResult: null,
-                
-                pvConfig: { amount: 100000, term: 20, rate: 5 },
-                pvResult: null,
-                annuityConfig: { age: 50, amount: 12000, deferral: 10, rate: 5 },
-                annuityResult: null,
-                
-                reserveConfig: { year: 5, sum_assured: 100000 },
-                retroResult: null,
-                
-                mcConfig: { num_paths: 10000, drift: 0.02, vol: 0.15 },
-                mcResult: null,
-                mcPaths: [],
-                
-                riskInput: '100, 250, 180, 420, 95, 310, 200, 150, 280, 175, 320, 90, 450',
-                riskResult: null,
-                
-                rateInput: { nominal: 5, compounding: 12 },
-                rateResult: null,
-                
-                charts: {},
-                
-                apiUrl: '/api',
-                
-                formatNumber(num) {
-                    if (!num) return '0';
-                    return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                },
-                
-                async calculatePremium() {
-                    this.loading = true;
-                    try {
-                        const res = await fetch(`${this.apiUrl}/calculate`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ ...this.policy, interest_rate: this.policy.interest_rate / 100 })
-                        });
-                        this.pricingResult = await res.json();
-                        this.updateReserveChart();
-                        this.updateMortalityChart();
-                    } catch(e) { console.error(e); }
-                    finally { this.loading = false; }
-                },
-                
-                updateReserveChart() {
-                    if (!this.pricingResult?.reserve_schedule) return;
-                    const ctx = document.getElementById('reserveChart');
-                    if (!ctx) return;
-                    if (this.charts.reserve) this.charts.reserve.destroy();
-                    this.charts.reserve = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: this.pricingResult.reserve_schedule.map((_, i) => i),
-                            datasets: [{ 
-                                label: 'Reserve (BWP)', 
-                                data: this.pricingResult.reserve_schedule, 
-                                borderColor: '#c96442', 
-                                backgroundColor: 'rgba(201,100,66,0.1)', 
-                                fill: true, 
-                                tension: 0.3 
-                            }]
-                        },
-                        options: { 
-                            responsive: true, 
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: { 
-                                y: { beginAtZero: true, grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                updateMortalityChart() {
-                    const ctx = document.getElementById('mortalityChart');
-                    if (!ctx) return;
-                    
-                    const ages = [];
-                    const qx = [];
-                    for (let i = this.policy.age; i < this.policy.age + this.policy.term; i++) {
-                        ages.push(i);
-                        const baseQ = 0.001 + (i - 20) * 0.0001;
-                        qx.push(this.policy.table_name === 'female' ? baseQ * 0.7 : baseQ);
-                    }
-                    
-                    if (this.charts.mortality) this.charts.mortality.destroy();
-                    this.charts.mortality = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: ages,
-                            datasets: [{
-                                label: 'Death Probability (qx)',
-                                data: qx,
-                                backgroundColor: '#c96442',
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                async calculatePV() {
-                    const v = 1 / (1 + this.pvConfig.rate / 100);
-                    this.pvResult = this.pvConfig.amount * Math.pow(v, this.pvConfig.term);
-                    this.updatePVChart();
-                },
-                
-                updatePVChart() {
-                    const ctx = document.getElementById('pvChart');
-                    if (!ctx) return;
-                    
-                    const labels = [];
-                    const data = [];
-                    for (let i = 0; i <= this.pvConfig.term; i++) {
-                        labels.push(i);
-                        const v = 1 / (1 + this.pvConfig.rate / 100);
-                        data.push(this.pvConfig.amount * Math.pow(v, i));
-                    }
-                    
-                    if (this.charts.pv) this.charts.pv.destroy();
-                    this.charts.pv = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Present Value',
-                                data: data,
-                                borderColor: '#c96442',
-                                backgroundColor: 'rgba(201,100,66,0.1)',
-                                fill: true,
-                                tension: 0.3
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                async calculateAnnuity() {
-                    try {
-                        const res = await fetch(`${this.apiUrl}/calculate`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                age: this.annuityConfig.age,
-                                product_type: 'deferred_annuity',
-                                sum_assured: this.annuityConfig.amount,
-                                term: 20,
-                                deferral_period: this.annuityConfig.deferral,
-                                interest_rate: this.annuityConfig.rate / 100
-                            })
-                        });
-                        this.annuityResult = await res.json();
-                        this.updateAnnuityChart();
-                    } catch(e) { console.error(e); }
-                },
-                
-                updateAnnuityChart() {
-                    const ctx = document.getElementById('annuityChart');
-                    if (!ctx || !this.annuityResult) return;
-                    
-                    const startAge = this.annuityConfig.age + this.annuityConfig.deferral;
-                    const labels = [];
-                    const data = [];
-                    for (let i = 0; i < 20; i++) {
-                        labels.push(startAge + i);
-                        data.push(this.annuityResult.annual_payout);
-                    }
-                    
-                    if (this.charts.annuity) this.charts.annuity.destroy();
-                    this.charts.annuity = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Annual Payout',
-                                data: data,
-                                backgroundColor: '#c96442',
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                async calculateNPR() {
-                    if (this.pricingResult?.reserve_schedule && this.reserveConfig.year < this.pricingResult.reserve_schedule.length) {
-                        this.retroResult = {
-                            accumulated_premium: this.pricingResult.reserve_schedule[this.reserveConfig.year] + 10000,
-                            accumulated_claims: 5000,
-                            reserve: this.pricingResult.reserve_schedule[this.reserveConfig.year]
-                        };
-                        this.updateReserveTimeChart();
-                    } else {
-                        alert('Please calculate a premium first');
-                    }
-                },
+      <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
 
-                updateReserveTimeChart() {
-                    const ctx = document.getElementById('reserveTimeChart');
-                    if (!ctx || !this.pricingResult?.reserve_schedule) return;
-                    
-                    if (this.charts.reserveTime) this.charts.reserveTime.destroy();
-                    this.charts.reserveTime = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: this.pricingResult.reserve_schedule.map((_, i) => i),
-                            datasets: [{
-                                label: 'Reserve',
-                                data: this.pricingResult.reserve_schedule,
-                                borderColor: '#c96442',
-                                backgroundColor: 'rgba(201,100,66,0.1)',
-                                fill: true,
-                                tension: 0.3
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                async runMonteCarlo() {
-                    this.loading = true;
-                    try {
-                        const res = await fetch(`${this.apiUrl}/vstar/montecarlo`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ num_paths: this.mcConfig.num_paths, drift: this.mcConfig.drift, volatility: this.mcConfig.vol })
-                        });
-                        const data = await res.json();
-                        this.mcResult = data;
-                        this.updateMCChart();
-                        this.updateMCPathsChart();
-                    } catch(e) { console.error(e); }
-                    finally { this.loading = false; }
-                },
-                
-                updateMCChart() {
-                    const ctx = document.getElementById('mcChart');
-                    if (!ctx || !this.mcResult) return;
-                    
-                    const bins = 20;
-                    const min = this.mcResult.mean - 3 * this.mcResult.std_dev;
-                    const max = this.mcResult.mean + 3 * this.mcResult.std_dev;
-                    const range = max - min;
-                    const binWidth = range / bins;
-                    
-                    const labels = [];
-                    const data = new Array(bins).fill(0);
-                    for (let i = 0; i < bins; i++) {
-                        labels.push((min + i * binWidth).toFixed(2));
-                    }
-                    
-                    this.mcResult.distribution.forEach(val => {
-                        const bin = Math.min(Math.floor((val - min) / binWidth), bins - 1);
-                        if (bin >= 0) data[bin]++;
-                    });
-                    
-                    if (this.charts.mc) this.charts.mc.destroy();
-                    this.charts.mc = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Frequency',
-                                data: data,
-                                backgroundColor: '#c96442',
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                updateMCPathsChart() {
-                    const ctx = document.getElementById('mcPathsChart');
-                    if (!ctx || !this.mcResult) return;
-                    
-                    const datasets = [];
-                    for (let i = 0; i < Math.min(10, this.mcResult.paths?.length || 0); i++) {
-                        datasets.push({
-                            label: 'Path ' + i,
-                            data: this.mcResult.paths[i],
-                            borderColor: `rgba(201,100,66,${0.3 + i * 0.07})`,
-                            borderWidth: 1,
-                            fill: false,
-                            tension: 0.1,
-                            pointRadius: 0
-                        });
-                    }
-                    
-                    const labels = this.mcResult.paths?.[0]?.map((_, i) => i) || [];
-                    
-                    if (this.charts.mcPaths) this.charts.mcPaths.destroy();
-                    this.charts.mcPaths = new Chart(ctx, {
-                        type: 'line',
-                        data: { labels, datasets },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                async calculateRisk() {
-                    try {
-                        const losses = this.riskInput.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
-                        const res = await fetch(`${this.apiUrl}/vstar/risk`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ losses })
-                        });
-                        this.riskResult = await res.json();
-                        this.updateRiskChart(losses);
-                    } catch(e) { console.error(e); }
-                },
-                
-                updateRiskChart(losses) {
-                    const ctx = document.getElementById('riskChart');
-                    if (!ctx) return;
-                    
-                    const sorted = [...losses].sort((a, b) => a - b);
-                    
-                    if (this.charts.risk) this.charts.risk.destroy();
-                    this.charts.risk = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: sorted.map((_, i) => i + 1),
-                            datasets: [{
-                                label: 'Loss',
-                                data: sorted,
-                                backgroundColor: sorted.map((v, i) => {
-                                    const percentile = i / sorted.length;
-                                    if (percentile >= 0.95) return '#c96442';
-                                    if (percentile >= 0.90) return '#d97757';
-                                    return '#87867f';
-                                }),
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                async convertRate() {
-                    try {
-                        const res = await fetch(`${this.apiUrl}/vstar/rate-convert`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ nominal_rate: this.rateInput.nominal / 100, compounding: parseInt(this.rateInput.compounding) })
-                        });
-                        this.rateResult = await res.json();
-                        this.updateRateCompChart();
-                    } catch(e) { console.error(e); }
-                },
-                
-                updateRateCompChart() {
-                    const ctx = document.getElementById('rateCompChart');
-                    if (!ctx || !this.rateResult) return;
-                    
-                    const freqs = [1, 2, 4, 12, 365, 1000];
-                    const labels = ['Annual', 'Semi-ann', 'Quarterly', 'Monthly', 'Daily', 'Continuous'];
-                    const data = freqs.map(m => {
-                        const i = this.rateInput.nominal / 100;
-                        return (Math.pow(1 + i/m, m) - 1) * 100;
-                    });
-                    
-                    if (this.charts.rateComp) this.charts.rateComp.destroy();
-                    this.charts.rateComp = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                label: 'Effective Rate %',
-                                data: data,
-                                backgroundColor: '#c96442',
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { beginAtZero: true, grid: { color: '#e8e6dc' } },
-                                x: { grid: { display: false } }
-                            }
-                        }
-                    });
-                },
-                
-                init() {
-                    const perfCtx = document.getElementById('perfChart');
-                    if (perfCtx && !this.charts.perf) {
-                        this.charts.perf = new Chart(perfCtx, {
-                            type: 'bar',
-                            data: {
-                                labels: ['Go + v-star', 'Python', 'R', 'Excel VBA', 'Excel'],
-                                datasets: [
-                                    {
-                                        label: 'Operations/sec',
-                                        data: [28000000, 500000, 100000, 50000, 1000000],
-                                        backgroundColor: '#c96442',
-                                        borderRadius: 4
-                                    }
-                                ]
-                            },
-                            options: {
-                                indexAxis: 'y',
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { legend: { display: false } },
-                                scales: {
-                                    x: { type: 'logarithmic', grid: { color: '#4d4c48' } },
-                                    y: { grid: { display: false } }
-                                }
-                            }
-                        });
-                    }
-                }
-            };
-        }
-    </script>
+      <div class="split">
+        <div class="stack">
+          <form class="card" @submit.prevent="calculatePV">
+            <div class="card-head">
+              <h3>Present value</h3>
+              <p>PV = FV / (1 + i)<sup>n</sup></p>
+            </div>
+            <div class="field">
+              <label for="pv-amount">Future amount (BWP)</label>
+              <input id="pv-amount" type="number" min="0" step="1000" x-model.number="pv.amount">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="pv-years">Years</label>
+                <input id="pv-years" type="number" min="0" max="100" x-model.number="pv.years">
+              </div>
+              <div class="field">
+                <label for="pv-rate">Interest rate (%)</label>
+                <input id="pv-rate" type="number" min="0" max="100" step="0.1" x-model.number="pv.rate">
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Calculate PV</button>
+          </form>
+
+          <div class="card" x-show="pvResult !== null">
+            <div class="metric">
+              <p class="metric-label">Present value</p>
+              <p class="metric-value accent" x-text="money(pvResult)"></p>
+              <p class="metric-note" x-text="'Discount factor ' + num(discountFactor(), 6)"></p>
+            </div>
+            <div class="chart" style="margin-top: 14px">
+              <canvas id="pvChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="formula">
+              <span class="accent">PV</span> = FV / (1 + i)<sup>n</sup><br>
+              <span class="accent">v</span> = 1 / (1 + i)
+            </div>
+            <p class="note">Every reserve and annuity in this app is a sum of discounted cash flows.</p>
+          </div>
+        </div>
+
+        <div class="stack">
+          <form class="card" @submit.prevent="calculateAnnuity">
+            <div class="card-head">
+              <h3>Deferred annuity</h3>
+              <p>Single premium needed to pay an income from a future age.</p>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="annuity-age">Age now</label>
+                <input id="annuity-age" type="number" min="0" max="120" x-model.number="annuity.age">
+              </div>
+              <div class="field">
+                <label for="annuity-deferral">Deferral (years)</label>
+                <input id="annuity-deferral" type="number" min="0" max="80" x-model.number="annuity.deferral">
+              </div>
+            </div>
+            <div class="field">
+              <label for="annuity-amount">Annual income (BWP)</label>
+              <input id="annuity-amount" type="number" min="0" step="1000" x-model.number="annuity.amount">
+            </div>
+            <div class="field">
+              <label for="annuity-rate">Interest rate (%)</label>
+              <input id="annuity-rate" type="number" min="0" max="100" step="0.1" x-model.number="annuity.rate">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+              <span x-show="!loading">Calculate annuity</span>
+              <span x-show="loading">Calculating…</span>
+            </button>
+          </form>
+
+          <div class="card" x-show="annuityResult">
+            <div class="result-title">
+              <h3>Annuity</h3>
+              <span class="badge">Deferred</span>
+            </div>
+            <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+              <div class="metric">
+                <p class="metric-label">Single premium</p>
+                <p class="metric-value accent" x-text="money(annuityResult && annuityResult.total_premium_cost)"></p>
+                <p class="metric-note">Cost today</p>
+              </div>
+              <div class="metric">
+                <p class="metric-label">Annual payout</p>
+                <p class="metric-value" x-text="money(annuityResult && annuityResult.annual_payout)"></p>
+                <p class="metric-note">From age <span x-text="annuity.age + annuity.deferral"></span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Reserves -->
+    <section class="panel" x-show="tab === 'reserves'" x-cloak>
+      <div class="section-head">
+        <div>
+          <h2>Policy reserves</h2>
+          <p>Prospective schedule plus the retrospective check at a chosen policy year.</p>
+        </div>
+      </div>
+
+      <div class="grid-main">
+        <form class="card" @submit.prevent="calculateReserves">
+          <div class="card-head">
+            <h3>Reserve assumptions</h3>
+            <p>Uses the net premium from the same policy.</p>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="reserve-age">Age</label>
+              <input id="reserve-age" type="number" min="0" max="120" x-model.number="reserve.age">
+            </div>
+            <div class="field">
+              <label for="reserve-gender">Mortality table</label>
+              <select id="reserve-gender" x-model="reserve.table_name">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="reserve-cover">Sum assured (BWP)</label>
+            <input id="reserve-cover" type="number" min="0" step="1000" x-model.number="reserve.sum_assured">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="reserve-term">Term (years)</label>
+              <input id="reserve-term" type="number" min="1" max="100" x-model.number="reserve.term">
+            </div>
+            <div class="field">
+              <label for="reserve-rate">Interest rate (%)</label>
+              <input id="reserve-rate" type="number" min="0" max="100" step="0.1" x-model.number="reserve.rate">
+            </div>
+          </div>
+          <div class="field">
+            <label for="reserve-year">Policy year to inspect</label>
+            <input id="reserve-year" type="number" min="0" max="100" x-model.number="reserve.year">
+            <p class="hint">Retrospective values are accumulated to the end of this year.</p>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+            <span x-show="!loading">Calculate reserves</span>
+            <span x-show="loading">Calculating…</span>
+          </button>
+        </form>
+
+        <div class="stack">
+          <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
+
+          <div class="empty" x-show="!reserveResult">
+            <div>
+              <strong>No reserve calculated</strong>
+              Run the calculation to see the prospective schedule and the retrospective check.
+            </div>
+          </div>
+
+          <div class="stack" x-show="reserveResult">
+            <div class="card">
+              <div class="result-title">
+                <h3>Reserve at year <span x-text="reserve.year"></span></h3>
+                <span class="badge">Retrospective</span>
+              </div>
+              <div class="metric-grid">
+                <div class="metric">
+                  <p class="metric-label">Accumulated premiums</p>
+                  <p class="metric-value" x-text="money(reserveResult && reserveResult.accumulated_premiums)"></p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">Accumulated claims</p>
+                  <p class="metric-value" x-text="money(reserveResult && reserveResult.accumulated_claims)"></p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">Reserve</p>
+                  <p class="metric-value accent" x-text="money(reserveResult && reserveResult.reserve)"></p>
+                </div>
+              </div>
+              <p class="note">Both methods should agree at the end of the term. Differences here come from the net premium basis and the inspection year.</p>
+            </div>
+
+            <div class="card" x-show="reserveSchedule && reserveSchedule.length">
+              <div class="card-head-row">
+                <h3>Prospective reserve schedule</h3>
+                <span>End of policy year</span>
+              </div>
+              <div class="chart">
+                <canvas id="reserveScheduleChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Simulation -->
+    <section class="panel" x-show="tab === 'simulation'" x-cloak>
+      <div class="section-head">
+        <div>
+          <h2>Monte Carlo</h2>
+          <p>Geometric Brownian motion paths, summarised as an interest-rate loss distribution.</p>
+        </div>
+      </div>
+
+      <div class="grid-main">
+        <form class="card" @submit.prevent="runMonteCarlo">
+          <div class="card-head">
+            <h3>Simulation settings</h3>
+            <p>Losses are measured on a BWP 1,000,000 notional over ten years.</p>
+          </div>
+          <div class="field">
+            <label for="mc-paths">Number of paths</label>
+            <input id="mc-paths" type="number" min="100" max="100000" step="100" x-model.number="mc.num_paths">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="mc-drift">Drift (μ)</label>
+              <input id="mc-drift" type="number" min="-1" max="1" step="0.01" x-model.number="mc.drift">
+            </div>
+            <div class="field">
+              <label for="mc-vol">Volatility (σ)</label>
+              <input id="mc-vol" type="number" min="0.01" max="2" step="0.01" x-model.number="mc.vol">
+            </div>
+          </div>
+          <div class="field">
+            <label for="mc-seed">Seed <span class="hint">(optional, for repeatable runs)</span></label>
+            <input id="mc-seed" type="number" min="0" step="1" x-model.number="mc.seed">
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+            <span x-show="!loading">Run simulation</span>
+            <span x-show="loading">Simulating…</span>
+          </button>
+          <div class="formula" style="margin-top: 16px">
+            dS = <span class="accent">μ</span>S dt + <span class="accent">σ</span>S dW
+          </div>
+        </form>
+
+        <div class="stack">
+          <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
+
+          <div class="empty" x-show="!mcResult">
+            <div>
+              <strong>No simulation yet</strong>
+              Configure the paths and run to see VaR, CTE and the loss spread.
+            </div>
+          </div>
+
+          <div class="stack" x-show="mcResult">
+            <div class="card">
+              <div class="result-title">
+                <h3>Simulated losses</h3>
+                <span class="badge" x-text="mc.num_paths.toLocaleString() + ' paths'"></span>
+              </div>
+              <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+                <div class="metric">
+                  <p class="metric-label">Mean loss</p>
+                  <p class="metric-value" x-text="money(mcResult && mcResult.mean)"></p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">Std deviation</p>
+                  <p class="metric-value" x-text="money(mcResult && mcResult.std_dev)"></p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">VaR 95%</p>
+                  <p class="metric-value accent" x-text="money(mcResult && mcResult.var_95)"></p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">VaR 99%</p>
+                  <p class="metric-value" x-text="money(mcResult && mcResult.var_99)"></p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">CTE 95%</p>
+                  <p class="metric-value" x-text="money(mcResult && mcResult.cte_95)"></p>
+                  <p class="metric-note">Average of worst 5%</p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">CTE 99%</p>
+                  <p class="metric-value" x-text="money(mcResult && mcResult.cte_99)"></p>
+                  <p class="metric-note">Average of worst 1%</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head-row">
+                <h3>Loss summary</h3>
+                <span>BWP</span>
+              </div>
+              <div class="chart">
+                <canvas id="mcChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Risk -->
+    <section class="panel" x-show="tab === 'risk'" x-cloak>
+      <div class="section-head">
+        <div>
+          <h2>Risk measures</h2>
+          <p>Paste a loss distribution and read VaR and CTE directly.</p>
+        </div>
+      </div>
+
+      <div class="grid-main">
+        <form class="card" @submit.prevent="calculateRisk">
+          <div class="card-head">
+            <h3>Loss distribution</h3>
+            <p>Comma-separated values from history or a model run.</p>
+          </div>
+          <div class="field">
+            <label for="risk-losses">Losses</label>
+            <textarea id="risk-losses" rows="8" x-model="risk.input"></textarea>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+            <span x-show="!loading">Compute risk metrics</span>
+            <span x-show="loading">Computing…</span>
+          </button>
+        </form>
+
+        <div class="stack">
+          <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
+
+          <div class="empty" x-show="!riskResult">
+            <div>
+              <strong>No distribution yet</strong>
+              Add losses and compute to see tail risk.
+            </div>
+          </div>
+
+          <div class="stack" x-show="riskResult">
+            <div class="card">
+              <div class="result-title">
+                <h3>Tail risk</h3>
+                <span class="badge" x-text="riskCount() + ' observations'"></span>
+              </div>
+              <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+                <div class="metric">
+                  <p class="metric-label">VaR 95%</p>
+                  <p class="metric-value accent" x-text="money(riskResult && riskResult.var_95)"></p>
+                  <p class="metric-note">5% exceedance</p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">VaR 99%</p>
+                  <p class="metric-value" x-text="money(riskResult && riskResult.var_99)"></p>
+                  <p class="metric-note">1% exceedance</p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">CTE 95%</p>
+                  <p class="metric-value" x-text="money(riskResult && riskResult.cte_95)"></p>
+                  <p class="metric-note">Average of worst 5%</p>
+                </div>
+                <div class="metric">
+                  <p class="metric-label">CTE 99%</p>
+                  <p class="metric-value" x-text="money(riskResult && riskResult.cte_99)"></p>
+                  <p class="metric-note">Average of worst 1%</p>
+                </div>
+              </div>
+              <div class="dl">
+                <div><dt>Mean</dt><dd x-text="money(riskResult && riskResult.mean)"></dd></div>
+                <div><dt>Range</dt><dd x-text="money(riskResult && riskResult.min) + ' – ' + money(riskResult && riskResult.max)"></dd></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head-row">
+                <h3>Sorted losses</h3>
+                <span>Tail highlighted</span>
+              </div>
+              <div class="chart">
+                <canvas id="riskChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rates -->
+    <section class="panel" x-show="tab === 'rates'" x-cloak>
+      <div class="section-head">
+        <div>
+          <h2>Rate converter</h2>
+          <p>Move between nominal, effective and continuous rates.</p>
+        </div>
+      </div>
+
+      <div class="error" role="alert" aria-live="polite" x-show="error" x-text="error"></div>
+
+      <div class="split">
+        <form class="card" @submit.prevent="convertRate">
+          <div class="card-head">
+            <h3>Nominal rate</h3>
+            <p>i<sup>(m)</sup> with m compounding periods per year.</p>
+          </div>
+          <div class="field">
+            <label for="rate-nominal">Nominal rate (%)</label>
+            <input id="rate-nominal" type="number" min="0" max="100" step="0.01" x-model.number="rates.nominal">
+          </div>
+          <div class="field">
+            <label for="rate-compounding">Compounding</label>
+            <select id="rate-compounding" x-model.number="rates.compounding">
+              <option :value="1">Annual (m = 1)</option>
+              <option :value="2">Semi-annual (m = 2)</option>
+              <option :value="4">Quarterly (m = 4)</option>
+              <option :value="12">Monthly (m = 12)</option>
+              <option :value="365">Daily (m = 365)</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+            <span x-show="!loading">Convert rate</span>
+            <span x-show="loading">Converting…</span>
+          </button>
+          <div class="formula" style="margin-top: 16px">
+            i = (1 + i<sup>(m)</sup>/m)<sup>m</sup> − 1<br>
+            δ = ln(1 + i)
+          </div>
+        </form>
+
+        <div class="stack" x-show="rateResult">
+          <div class="metric-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+            <div class="metric">
+              <p class="metric-label">Effective annual</p>
+              <p class="metric-value accent" x-text="pct(rateResult && rateResult.effective_rate, 4)"></p>
+            </div>
+            <div class="metric">
+              <p class="metric-label">Force of interest</p>
+              <p class="metric-value" x-text="num(rateResult && rateResult.force_of_interest, 6)"></p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head-row">
+              <h3>Effective rate by frequency</h3>
+              <span>Same nominal rate</span>
+            </div>
+            <div class="chart">
+              <canvas id="rateChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="dl">
+              <div><dt>Nominal rate</dt><dd x-text="pct(rates.nominal / 100, 4)"></dd></div>
+              <div><dt>Compounding</dt><dd x-text="'m = ' + rates.compounding"></dd></div>
+              <div><dt>Effective rate</dt><dd x-text="pct(rateResult && rateResult.effective_rate, 4)"></dd></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty" x-show="!rateResult" style="grid-column: 1 / -1">
+          <div>
+            <strong>No conversion yet</strong>
+            Enter a nominal rate to see the effective rate and force of interest.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Benchmarks -->
+    <section class="panel" x-show="tab === 'benchmarks'" x-cloak>
+      <div class="section-head">
+        <div>
+          <h2>Engine benchmarks</h2>
+          <p>Indicative throughput of the Go + v-star calculation path.</p>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="metric-grid">
+          <div class="metric">
+            <p class="metric-label">CSV parsing</p>
+            <p class="metric-value accent">28M+</p>
+            <p class="metric-note">rows per second</p>
+          </div>
+          <div class="metric">
+            <p class="metric-label">Monte Carlo</p>
+            <p class="metric-value accent">100K+</p>
+            <p class="metric-note">paths per second</p>
+          </div>
+          <div class="metric">
+            <p class="metric-label">Present value</p>
+            <p class="metric-value accent">28M+</p>
+            <p class="metric-note">calculations per second</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head-row">
+            <h3>Operations per second</h3>
+            <span>Log scale</span>
+          </div>
+          <div class="chart tall">
+            <canvas id="perfChart"></canvas>
+          </div>
+          <p class="note">Illustrative comparison against common spreadsheet and scripting setups. Reproduce locally with the benchmark suite.</p>
+        </div>
+
+        <div class="split">
+          <div class="card">
+            <div class="card-head">
+              <h3>Why Go + v-star</h3>
+            </div>
+            <ul class="plain-list">
+              <li>Single binary, no runtime dependencies</li>
+              <li>Deterministic calculations with streaming CSV input</li>
+              <li>Goroutine-based parallel valuations</li>
+              <li>Standard library HTTP server</li>
+            </ul>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h3>What runs here</h3>
+            </div>
+            <ul class="plain-list">
+              <li>Term, whole life and endowment premiums</li>
+              <li>Immediate and deferred annuities</li>
+              <li>Prospective and retrospective reserves</li>
+              <li>Monte Carlo, VaR and CTE</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-foot wrap">
+    <p>Actuworry — actuarial platform built with Go + v-star.</p>
+    <span>Educational use only · not for commercial decisions</span>
+  </footer>
 </body>
 </html>

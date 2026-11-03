@@ -42,12 +42,12 @@ cd backend/tests
 
 ## API Endpoints
 
-- `GET /health` - Health check
-- `GET /tables` - List available mortality tables
-- `POST /calculate` - Single premium calculation
-- `POST /calculate/batch` - Batch premium calculations
-- `POST /calculate/sensitivity` - Sensitivity analysis
-- `POST /analyze/portfolio` - Portfolio analysis
+- `GET /api/health` - Health check
+- `GET /api/tables` - List available mortality tables
+- `POST /api/calculate` - Single premium calculation
+- `POST /api/calculate/batch` - Batch premium calculations
+- `POST /api/calculate/sensitivity` - Sensitivity analysis
+- `POST /api/analyze/portfolio` - Portfolio analysis
 
 ## Environment Variables
 
