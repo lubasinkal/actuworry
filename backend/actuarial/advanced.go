@@ -76,16 +76,18 @@ func ComputeDuration(cfs []float64, rate float64) (mac, mod, conv float64) {
 }
 
 type MonteCarloEngine struct {
-	gen   *stochastic.RateGenerator
-	drift float64
-	vol   float64
+	gen         *stochastic.RateGenerator
+	initialRate float64
+	drift       float64
+	vol         float64
 }
 
-func NewMonteCarlo(drift, vol float64) *MonteCarloEngine {
+func NewMonteCarlo(initialRate, drift, vol float64) *MonteCarloEngine {
 	return &MonteCarloEngine{
-		gen:   stochastic.NewRateGenerator(0.05, drift, vol),
-		drift: drift,
-		vol:   vol,
+		gen:         stochastic.NewRateGenerator(initialRate, drift, vol),
+		initialRate: initialRate,
+		drift:       drift,
+		vol:         vol,
 	}
 }
 
@@ -102,7 +104,7 @@ func (m *MonteCarloEngine) RunSimulation(numPaths, steps int, dt float64) [][]fl
 }
 
 func (m *MonteCarloEngine) RunWithSeed(numPaths, steps int, dt float64, seed uint64) [][]float64 {
-	gen := stochastic.NewRateGeneratorWithSeed(0.05, m.drift, m.vol, seed)
+	gen := stochastic.NewRateGeneratorWithSeed(m.initialRate, m.drift, m.vol, seed)
 	paths := make([][]float64, numPaths)
 	for i := 0; i < numPaths; i++ {
 		paths[i] = gen.GeneratePath(steps, dt)
@@ -156,11 +158,11 @@ func ComputeCTE(losses []float64, conf float64) float64 {
 	return risk.CTE(losses, conf)
 }
 
-func RunMCWithRisk(numPaths int, notional, drift, vol float64, seed uint64) RiskReport {
+func RunMCWithRisk(numPaths int, notional, initialRate, drift, vol float64, seed uint64) RiskReport {
 	dt := 1.0
 	steps := 10
 
-	mc := NewMonteCarlo(drift, vol)
+	mc := NewMonteCarlo(initialRate, drift, vol)
 	var paths [][]float64
 	if seed > 0 {
 		paths = mc.RunWithSeed(numPaths, steps, dt, seed)
@@ -171,7 +173,8 @@ func RunMCWithRisk(numPaths int, notional, drift, vol float64, seed uint64) Risk
 	losses := make([]float64, numPaths)
 	for i, path := range paths {
 		finalRate := path[steps-1]
-		losses[i] = math.Max(0, mc.drift-finalRate) * notional
+		// Loss is the shortfall of the final rate below today's rate.
+		losses[i] = math.Max(0, initialRate-finalRate) * notional
 	}
 
 	return ComputeRiskReport(losses)
@@ -202,7 +205,7 @@ func ValueBond(face, couponRate float64, years int, ytm float64) BondValuation {
 	}
 
 	return BondValuation{
-		Price:       price * couponRate,
+		Price:       price,
 		MacaulayDur: macDur,
 		ModifiedDur: modDur,
 		Convexity:   conv,
@@ -217,12 +220,8 @@ type EndowmentResult struct {
 func CalcEndowmentNSP(age, term int, sa float64, mt MortalityTable, rate float64) EndowmentResult {
 	rc := NewVStarConverter(rate)
 
+	benefitPV := 0.0
 	alive := 1.0
-	for a := age; a < age+term-1 && a < len(mt); a++ {
-		alive *= (1.0 - mt[a])
-	}
-
-	benefitPV, premiumsPV := 0.0, 0.0
 
 	for y := 0; y < term; y++ {
 		curAge := age + y
@@ -230,24 +229,14 @@ func CalcEndowmentNSP(age, term int, sa float64, mt MortalityTable, rate float64
 			break
 		}
 
-		dthPr := mt[curAge]
-		survPr := 1.0
-		for a := age; a < curAge; a++ {
-			survPr *= (1.0 - mt[a])
-		}
-
-		df := rc.PresentValue(1.0, y+1)
-		benefitPV += survPr * dthPr * sa * df
-		premiumsPV += survPr * df
+		benefitPV += alive * mt[curAge] * sa * rc.PresentValue(1.0, y+1)
+		alive *= 1.0 - mt[curAge]
 	}
 
-	endowPV := rc.PresentValue(sa, term) * alive
-	benefitPV += endowPV
+	// Survival benefit is paid at the end of the term.
+	benefitPV += alive * rc.PresentValue(sa, term)
 
-	nsp := 0.0
-	if premiumsPV > 0 {
-		nsp = benefitPV / premiumsPV
-	}
+	nsp := benefitPV
 
 	return EndowmentResult{
 		NetSinglePremium: math.Round(nsp*100) / 100,
@@ -273,12 +262,17 @@ func CalcRetrospectiveReserve(p *Policy, mt MortalityTable, np float64) RetroRes
 			break
 		}
 
-		accumPrem = (accumPrem + np) * (1 + rate)
+		// Premiums are collected at the start of the year; claims are paid at the end.
+		accumPrem = (accumPrem + alive*np) * (1 + rate)
+		accumClaim = accumClaim*(1+rate) + alive*mt[ageNow]*p.CoverageAmount
 
-		dthPr := mt[ageNow]
-		accumClaim = (accumClaim + alive*dthPr*p.CoverageAmount) * (1 + rate)
+		alive *= 1.0 - mt[ageNow]
+	}
 
-		alive *= (1.0 - dthPr)
+	// Report the fund per policy still in force.
+	if alive > 0 {
+		accumPrem /= alive
+		accumClaim /= alive
 	}
 
 	res := accumPrem - accumClaim

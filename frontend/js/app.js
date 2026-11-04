@@ -43,7 +43,7 @@ function actuarialApp() {
     reserveResult: null,
     reserveSchedule: null,
 
-    mc: { num_paths: 10000, drift: 0.02, vol: 0.15, seed: 0 },
+    mc: { num_paths: 10000, initial_rate: 5, drift: 0.02, vol: 0.15, seed: 0 },
     mcResult: null,
 
     risk: { input: '100, 250, 180, 420, 95, 310, 200, 150, 280, 175, 320, 90, 450', losses: [] },
@@ -129,7 +129,7 @@ function actuarialApp() {
         method: 'POST',
         path: '/api/vstar/montecarlo',
         desc: 'Simulated loss distribution',
-        body: { num_paths: 1000, drift: 0.02, volatility: 0.15, seed: 42 },
+        body: { num_paths: 1000, initial_rate: 0.05, drift: 0.02, volatility: 0.15, seed: 42 },
       },
       {
         id: 'risk',
@@ -167,7 +167,7 @@ function actuarialApp() {
         method: 'POST',
         path: '/api/vstar/endowment',
         desc: 'Endowment single premium',
-        body: { age: 35, term: 20, sum_assured: 100000, rate: 0.05 },
+        body: { age: 35, term: 20, sum_assured: 100000, rate: 0.05, table_name: 'male' },
       },
       {
         id: 'bond',
@@ -339,6 +339,7 @@ function actuarialApp() {
       return this.run(async () => {
         this.mcResult = await this.post('/api/vstar/montecarlo', {
           num_paths: this.mc.num_paths,
+          initial_rate: this.mc.initial_rate / 100,
           drift: this.mc.drift,
           volatility: this.mc.vol,
           seed: this.mc.seed,
@@ -554,9 +555,8 @@ function actuarialApp() {
     renderRateChart() {
       const nominal = this.rates.nominal / 100;
       const frequencies = [1, 2, 4, 12, 365];
-      const labels = ['Annual', 'Semi-annual', 'Quarterly', 'Monthly', 'Daily', 'Continuous'];
+      const labels = ['Annual', 'Semi-annual', 'Quarterly', 'Monthly', 'Daily'];
       const data = frequencies.map((m) => (Math.pow(1 + nominal / m, m) - 1) * 100);
-      data.push((Math.exp(nominal) - 1) * 100);
 
       drawChart('rate', 'rateChart', {
         type: 'bar',

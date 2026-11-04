@@ -144,7 +144,7 @@
                 <input id="exp-maintenance" type="number" min="0" step="10" x-model.number="expenses.maintenance_expense">
               </div>
               <div class="field">
-                <label for="exp-profit">Profit margin (%)</label>
+                <label for="exp-profit">Profit (% of net)</label>
                 <input id="exp-profit" type="number" min="0" max="100" step="0.1" x-model.number="expenses.profit_margin">
               </div>
             </div>
@@ -427,6 +427,10 @@
             <label for="mc-paths">Paths</label>
             <input id="mc-paths" type="number" min="100" max="100000" step="100" x-model.number="mc.num_paths">
           </div>
+          <div class="field">
+            <label for="mc-initial">Current rate (%)</label>
+            <input id="mc-initial" type="number" min="0" max="100" step="0.1" x-model.number="mc.initial_rate">
+          </div>
           <div class="field-row">
             <div class="field">
               <label for="mc-drift">Drift (μ)</label>
@@ -445,7 +449,7 @@
             <span class="spinner" x-show="loading" x-cloak></span>
             <span x-text="loading ? 'Simulating…' : 'Run simulation'"></span>
           </button>
-          <div class="formula">dS = μS dt + σS dW · BWP 1M · 10 years</div>
+          <div class="formula">dS = μS dt + σS dW · loss = shortfall below current rate</div>
         </form>
 
         <div class="stack">

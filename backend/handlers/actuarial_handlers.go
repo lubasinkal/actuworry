@@ -114,10 +114,11 @@ func (h *ActuarialHandler) MonteCarloSimulation(w http.ResponseWriter, r *http.R
 		return
 	}
 	var req struct {
-		NumPaths int     `json:"num_paths"`
-		Drift    float64 `json:"drift"`
-		Vol      float64 `json:"volatility"`
-		Seed     uint64  `json:"seed"`
+		NumPaths    int      `json:"num_paths"`
+		InitialRate *float64 `json:"initial_rate"`
+		Drift       *float64 `json:"drift"`
+		Vol         *float64 `json:"volatility"`
+		Seed        uint64   `json:"seed"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, "Invalid JSON", http.StatusBadRequest)
@@ -126,13 +127,25 @@ func (h *ActuarialHandler) MonteCarloSimulation(w http.ResponseWriter, r *http.R
 	if req.NumPaths <= 0 {
 		req.NumPaths = 10000
 	}
-	if req.Drift <= 0 {
-		req.Drift = 0.02
+	initialRate, drift, vol := 0.05, 0.02, 0.15
+	if req.InitialRate != nil {
+		initialRate = *req.InitialRate
 	}
-	if req.Vol <= 0 {
-		req.Vol = 0.15
+	if req.Drift != nil {
+		drift = *req.Drift
 	}
-	result := actuarial.RunMCWithRisk(req.NumPaths, 1000000, req.Drift, req.Vol, req.Seed)
+	if req.Vol != nil {
+		vol = *req.Vol
+	}
+	if initialRate < 0 || initialRate > 1 {
+		sendError(w, "initial rate must be between 0 and 1", http.StatusBadRequest)
+		return
+	}
+	if vol < 0 {
+		sendError(w, "volatility must be positive", http.StatusBadRequest)
+		return
+	}
+	result := actuarial.RunMCWithRisk(req.NumPaths, 1000000, initialRate, drift, vol, req.Seed)
 	sendJSON(w, result, http.StatusOK)
 }
 
@@ -175,9 +188,9 @@ func (h *ActuarialHandler) RateConverterHandler(w http.ResponseWriter, r *http.R
 		return
 	}
 	var req struct {
-		Nominal     float64 `json:"nominal_rate"`
-		Effective   float64 `json:"effective_rate"`
-		Compounding int     `json:"compounding"`
+		Nominal     *float64 `json:"nominal_rate"`
+		Effective   *float64 `json:"effective_rate"`
+		Compounding int      `json:"compounding"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, "Invalid JSON", http.StatusBadRequest)
@@ -187,14 +200,15 @@ func (h *ActuarialHandler) RateConverterHandler(w http.ResponseWriter, r *http.R
 		req.Compounding = 12
 	}
 	result := map[string]float64{}
-	if req.Nominal > 0 {
-		result["nominal_rate"] = req.Nominal
-		result["effective_rate"] = actuarial.NominalToEffective(req.Nominal, req.Compounding)
-		result["force_of_interest"] = actuarial.ForceOfInterest(req.Nominal)
-	} else if req.Effective > 0 {
-		result["nominal_rate"] = actuarial.EffectiveToNominal(req.Effective, req.Compounding)
-		result["effective_rate"] = req.Effective
-		result["force_of_interest"] = actuarial.ForceOfInterest(req.Effective)
+	if req.Nominal != nil {
+		effective := actuarial.NominalToEffective(*req.Nominal, req.Compounding)
+		result["nominal_rate"] = *req.Nominal
+		result["effective_rate"] = effective
+		result["force_of_interest"] = actuarial.ForceOfInterest(effective)
+	} else if req.Effective != nil {
+		result["nominal_rate"] = actuarial.EffectiveToNominal(*req.Effective, req.Compounding)
+		result["effective_rate"] = *req.Effective
+		result["force_of_interest"] = actuarial.ForceOfInterest(*req.Effective)
 	} else {
 		sendError(w, "Provide either nominal_rate or effective_rate", http.StatusBadRequest)
 		return
@@ -212,12 +226,24 @@ func (h *ActuarialHandler) EndowmentCalculator(w http.ResponseWriter, r *http.Re
 		Term       int     `json:"term"`
 		SumAssured float64 `json:"sum_assured"`
 		Rate       float64 `json:"rate"`
+		TableName  string  `json:"table_name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
-	mortTable, _ := h.service.GetMortalityTable("male")
+	if req.Age < 0 || req.Term <= 0 || req.SumAssured <= 0 {
+		sendError(w, "age, term and sum_assured must be positive", http.StatusBadRequest)
+		return
+	}
+	if req.TableName == "" {
+		req.TableName = "male"
+	}
+	mortTable, err := h.service.GetMortalityTable(req.TableName)
+	if err != nil {
+		sendError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	result := actuarial.CalcEndowmentNSP(req.Age, req.Term, req.SumAssured, mortTable, req.Rate)
 	sendJSON(w, result, http.StatusOK)
 }
@@ -272,6 +298,10 @@ func (h *ActuarialHandler) BondValuation(w http.ResponseWriter, r *http.Request)
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		sendError(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if req.Face <= 0 || req.Years <= 0 {
+		sendError(w, "face_value and years must be positive", http.StatusBadRequest)
 		return
 	}
 	result := actuarial.ValueBond(req.Face, req.Coupon, req.Years, req.YTM)
